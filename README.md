@@ -51,34 +51,36 @@ phone, upload tracks and edit playlists, then the radio sleeps. Same pattern as 
 
 ## BOM and cost
 
-Rough per unit, in BRL, Brazilian shops. Modules on perfboard, hand assembled. No
-custom PCB. Kept cheap with a smaller display, a recycled cell and a printed case.
+Rough per unit, in BRL. Modules on perfboard, hand assembled, no custom PCB. Nothing
+is removed from the earlier spec; the cost drop comes from sourcing the cheap parts on
+AliExpress in one consolidated order. Batteries stay local. Import tax can nibble at
+the savings, so these are the good case.
 
 | Part | Note | Price |
 |---|---|---|
-| ESP32 classic devkit | dual core, needs A2DP | 40 |
-| PCM5102A DAC module | I2S audio out | 18 |
-| Headphone amp module | NS8002 or similar | 8 |
-| microSD module | library storage | 8 |
-| microSD 8 GB card | reuse an old card if possible | 8 |
-| OLED SSD1306 0.96 I2C | track and playlist | 12 |
-| Buttons | play, next, prev, volume x2 | 8 |
+| ESP32 classic devkit | dual core, needs A2DP, sourced cheap | 25 |
+| PCM5102A DAC module | I2S audio out | 12 |
+| Headphone amp module | NS8002 or similar | 5 |
+| microSD module | library storage | 4 |
+| microSD 8 GB card | reuse an old card if possible | 5 |
+| OLED SSD1306 0.96 I2C | track and playlist | 10 |
+| Buttons | play, next, prev, volume x2 | 5 |
 | 3.5mm jack | headphone out | 3 |
 | 18650 cell | recycled where possible | 5 |
-| 18650 holder | | 4 |
+| 18650 holder | | 3 |
 | TP4056 USB-C | charger | 2 |
-| Power switch | slide | 3 |
+| Power switch | slide | 2 |
 | LED | status | 1 |
-| Passives and wires | | 8 |
-| Perfboard | | 5 |
+| Passives and wires | | 6 |
+| Perfboard | | 4 |
 | Case | 3D print, commissioned, screw-openable | 18 |
 | Packaging and stickers | simple box, small labels | 5 |
 
-Component cost is about **R$160** per unit.
+Component cost is about **R$115** per unit, down from R$160 by cheaper sourcing alone.
 
 Price is cost plus assembly time plus a light 25% markup to cover fees, failures and
-the odd warranty. About R$160 in parts, 3 hours at R$25 an hour, then +25%:
-**around R$295**.
+the odd warranty. About R$115 in parts, 3 hours at R$25 an hour, then +25%:
+**around R$240**.
 
 ## Principles
 
