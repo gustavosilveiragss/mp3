@@ -87,6 +87,13 @@ the odd warranty. About R$115 in parts, 3 hours at R$25 an hour, then +25%:
 Battery first and friction on purpose: your files, your playlists, no feed. Radios
 only when you ask, with Bluetooth as the one deliberate exception for wireless sound.
 
+## Build
+
+Hand soldered on perfboard. Follow the marmota
+[build standard](https://github.com/gustavosilveiragss/marmota#build-standard):
+minimal solder, strain relief, panel-mount hardware, board screwed to standoffs.
+Strain relief the battery, the headphone jack and the display wiring.
+
 ## Status
 
 Idea stage, decisions locked. No code yet. Board is a classic ESP32 for A2DP.
