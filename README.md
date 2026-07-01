@@ -51,32 +51,32 @@ phone, upload tracks and edit playlists, then the radio sleeps. Same pattern as 
 
 ## BOM and cost
 
-Rough per unit, in BRL, for a batch on a custom PCB. Bare chips soldered to our own
-board (JLCPCB) replace the modules, which is the main saving at volume.
+Rough per unit, in BRL, Brazilian shops. Modules on perfboard, hand assembled. No
+custom PCB. Kept cheap with a smaller display, a recycled cell and a printed case.
 
 | Part | Note | Price |
 |---|---|---|
-| ESP32-WROOM-32 module | bare, dual core for A2DP | 25 |
-| PCM5102A chip | I2S DAC on the PCB | 10 |
-| Headphone amp chip | NS8002 or similar | 3 |
-| microSD socket | on the PCB | 3 |
+| ESP32 classic devkit | dual core, needs A2DP | 40 |
+| PCM5102A DAC module | I2S audio out | 18 |
+| Headphone amp module | NS8002 or similar | 8 |
+| microSD module | library storage | 8 |
 | microSD 8 GB card | reuse an old card if possible | 8 |
 | OLED SSD1306 0.91 128x32 | track and playlist | 16 |
 | Buttons | play, next, prev, volume x2 | 8 |
 | 3.5mm jack | headphone out | 3 |
 | 18650 cell | recycled where possible | 5 |
 | 18650 holder | | 4 |
-| TP4056 chip | charger on the PCB | 3 |
+| TP4056 USB-C | charger | 7 |
 | Power switch | slide | 3 |
 | LED | status | 1 |
-| Passives | on the PCB | 6 |
-| Custom PCB | JLCPCB, per unit at volume | 8 |
-| Case | 3D print | 5 |
+| Passives and wires | | 8 |
+| Perfboard | | 5 |
+| Case | 3D print or reused | 5 |
 
-Component cost is about **R$100** per unit, down from R$165 in the module spec.
+Component cost is about **R$145** per unit.
 
 Suggested selling price, with build time, failures, packaging and margin (about 2x
-to 2.5x the BOM): **R$220 to R$280**.
+to 2.3x the BOM): **R$300 to R$350**.
 
 ## Principles
 
