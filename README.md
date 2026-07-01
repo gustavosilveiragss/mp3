@@ -75,8 +75,8 @@ custom PCB. Kept cheap with a smaller display, a recycled cell and a printed cas
 
 Component cost is about **R$145** per unit.
 
-Suggested selling price, with build time, failures, packaging and margin (about 2x
-to 2.3x the BOM): **R$300 to R$350**.
+Price is just cost plus time, no profit markup. About R$145 in parts plus roughly
+3 hours of assembly at R$25 an hour: **around R$220**.
 
 ## Principles
 
