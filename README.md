@@ -34,7 +34,7 @@ from the phone over WiFi. Easy to grow, easy to swap.
 ## Control
 
 * Buttons: play and pause, next, previous, volume up and down.
-* A small 0.91 inch OLED shows the track and playlist. Simplest display that does the
+* A small 0.96 inch OLED shows the track and playlist. Simplest display that does the
   job, same SSD1306 driver as the rest of the family.
 * One LED for status.
 
@@ -61,22 +61,22 @@ custom PCB. Kept cheap with a smaller display, a recycled cell and a printed cas
 | Headphone amp module | NS8002 or similar | 8 |
 | microSD module | library storage | 8 |
 | microSD 8 GB card | reuse an old card if possible | 8 |
-| OLED SSD1306 0.91 128x32 | track and playlist | 16 |
+| OLED SSD1306 0.96 I2C | track and playlist | 12 |
 | Buttons | play, next, prev, volume x2 | 8 |
 | 3.5mm jack | headphone out | 3 |
 | 18650 cell | recycled where possible | 5 |
 | 18650 holder | | 4 |
-| TP4056 USB-C | charger | 7 |
+| TP4056 USB-C | charger | 2 |
 | Power switch | slide | 3 |
 | LED | status | 1 |
 | Passives and wires | | 8 |
 | Perfboard | | 5 |
 | Case | 3D print or reused | 5 |
 
-Component cost is about **R$145** per unit.
+Component cost is about **R$140** per unit.
 
-Price is just cost plus time, no profit markup. About R$145 in parts plus roughly
-3 hours of assembly at R$25 an hour: **around R$220**.
+Price is just cost plus time, no profit markup. About R$140 in parts plus roughly
+3 hours of assembly at R$25 an hour: **around R$210**.
 
 ## Principles
 
