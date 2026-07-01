@@ -71,13 +71,13 @@ custom PCB. Kept cheap with a smaller display, a recycled cell and a printed cas
 | LED | status | 1 |
 | Passives and wires | | 8 |
 | Perfboard | | 5 |
-| Case | 3D print or reused | 5 |
+| Case | 3D print, commissioned | 15 |
 
-Component cost is about **R$140** per unit.
+Component cost is about **R$150** per unit.
 
 Price is cost plus assembly time plus a light 25% markup to cover fees, failures and
-the odd warranty. About R$140 in parts, 3 hours at R$25 an hour, then +25%:
-**around R$270**.
+the odd warranty. About R$150 in parts, 3 hours at R$25 an hour, then +25%:
+**around R$280**.
 
 ## Principles
 
