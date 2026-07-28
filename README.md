@@ -52,7 +52,7 @@ phone, upload tracks and edit playlists, then the radio sleeps. Same pattern as 
 ## BOM and cost
 
 Rough per unit, in BRL. Modules on perfboard, hand assembled, no custom PCB. Nothing
-is removed from the earlier spec; the cost drop comes from sourcing the cheap parts on
+is removed from the earlier spec. The cost drop comes from sourcing the cheap parts on
 AliExpress in one consolidated order. Batteries stay local. Import tax can nibble at
 the savings, so these are the good case.
 
