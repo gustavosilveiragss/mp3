@@ -33,6 +33,11 @@
 #define AUD_EV(...) ((void)0)
 #endif
 
+#if MP3_AUDIO_DEBUG
+extern uint8_t gSbcBitpool; // BtWrap.cpp
+extern uint16_t gSbcMtu;
+#endif
+
 namespace {
 
 constexpr uint32_t kSwitchGapMs = 800; // o fone anterior precisa soltar o link antes do proximo connect
@@ -92,7 +97,7 @@ void report(int link, int state, uint8_t volume) {
              " len_max=", cbMaxLen.exchange(0), " dec_fr=", frames, " dec_avg_us=", frames ? (st.busyUs - busy0) / frames : 0,
              " dec_max_us=", st.maxUs, " err=", st.errors, " pilha=", stream.stackFree(), " heap=", ESP.getFreeHeap(),
              " min=", ESP.getMinFreeHeap(), " vol=", volume, " btvol=", bt.get_volume(), " pos=", stream.playedFrames(), " ticks=", tickN.exchange(0),
-             " tmin=", tickMin.exchange(UINT32_MAX), " tmax=", tickMax.exchange(0));
+             " tmin=", tickMin.exchange(UINT32_MAX), " tmax=", tickMax.exchange(0), " bp=", gSbcBitpool, " mtu=", gSbcMtu);
     under0 = under;
     frames0 = st.frames;
     busy0 = st.busyUs;
