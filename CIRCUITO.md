@@ -1,53 +1,24 @@
 # Circuito do mp3
 
-Player de audio no ESP32 classico (WROOM-32, DevKit 38 pinos) + DAC I2S PCM5102A + amp de
-fone + microSD + OLED + 5 botoes + 18650 com carga USB-C. ESP32 classico (nao C3) por
+Player de audio Bluetooth no ESP32 classico (WROOM-32, DevKit 38 pinos) + microSD + OLED +
+2 botoes (gestos, ver CONTROLES.md) + 18650 com carga USB-C. Sem DAC, amp nem jack. ESP32 classico (nao C3) por
 causa do Bluetooth A2DP. Esquema visual em [`perfboard/`](perfboard/).
 
 ## Componentes
 
 | Peca | Componente | Valor / modelo | Nota |
 |---|---|---|---|
-| ESP32 DevKit | placa principal | WROOM-32, 38 pinos | A2DP + I2S |
-| DAC | DAC I2S | PCM5102A (GY-PCM5102A) | saida line-level |
-| Amp de fone | amp estereo ground-referenced | PAM8908 / TPA6132 | driva 32ohm, NAO usar amp de alto-falante |
+| ESP32 DevKit | placa principal | WROOM-32, 38 pinos | A2DP |
 | microSD | modulo cartao | SPI (VSPI) | biblioteca de musicas |
 | OLED | display | SSD1306 0.96" I2C | navegacao |
-| 5x botao | tactil momentario | - | play, next, prev, vol+, vol- |
+| 5x botao | tactil 6x6 momentaneo | - | play, next, prev, vol+, vol-; como no pin |
 | LED | LED 5mm + R 330 | - | status |
-| Jack P2 | 3.5mm estereo femea | painel | saida de fone |
-| MT3608 | boost | ajustado 5.0V | rail limpo pro DAC/amp |
+| MT3608 | boost | ajustado 5.0V | 5V pro VIN do ESP |
 | TP4056 | carregador USB-C | com protecao DW01 | carrega desligado |
 | Bateria | LiPo 18650 | 3.7V | protegida |
-| Chave | chave deslizante | SS-12D00 | liga/desliga |
+| Chave | chave deslizante | SS-12D00 | liga/desliga; como no pin |
 
 ## Ligacoes
-
-### DAC I2S (PCM5102A)
-
-| PCM5102A | ESP |
-|---|---|
-| BCK | GPIO26 |
-| LCK (LRCK) | GPIO25 |
-| DIN | GPIO27 |
-| SCK | GND (DAC gera clock interno do BCK) |
-| FMT | GND (formato I2S) |
-| XSMT | 3V3 (un-mute, LOW = mudo) |
-| FLT | GND (latencia normal) |
-| DEMP | GND (de-enfase off) |
-| VIN | 5V (LDO da placa faz 3.3V limpo) |
-| GND | GND |
-
-### Cadeia de audio (DAC -> amp -> jack)
-
-| De | Para |
-|---|---|
-| PCM5102A LOUT / ROUT | amp LIN / RIN |
-| PCM5102A GND | amp GND |
-| 5V | amp VCC |
-| amp EN | VCC (habilitado) |
-| amp LOUT / ROUT | jack P2 tip / ring |
-| amp GND | jack P2 sleeve |
 
 ### microSD (VSPI)
 
@@ -73,11 +44,10 @@ causa do Bluetooth A2DP. Esquema visual em [`perfboard/`](perfboard/).
 
 | Botao | GPIO |
 |---|---|
-| play/pause | GPIO32 |
-| next | GPIO33 |
-| prev | GPIO13 |
-| vol+ | GPIO14 |
-| vol- | GPIO4 |
+| A | GPIO33 |
+| B | GPIO32 |
+
+Acoes por gesto em `CONTROLES.md`.
 
 ### LED, bateria, energia
 
@@ -90,12 +60,25 @@ causa do Bluetooth A2DP. Esquema visual em [`perfboard/`](perfboard/).
 | MT3608 VOUT+ (5.0V) | ESP32 5V/VIN |
 | TP4056 OUT- | MT3608 GND -> ESP GND (star ground) |
 
-Bulk 470-1000uF no 5V (anti-brownout) + 100nF no 5V e no 3V3. 10uF+100nF no VIN do DAC
-(ferrite opcional em serie pra rail limpo). GPIO35 e input-only, ok pra ADC de bateria.
+Bulk 470-1000uF no 5V (anti-brownout) + 100nF no 5V e no 3V3.  GPIO35 e input-only, ok pra ADC de bateria.
+
+## Prototipo em breadboard (fazer antes da perfboard)
+
+Sem prazo, minimo de solda, mesma pinagem das tabelas acima. ESP32 + microSD + OLED + 2 botoes
++ LED + divisor, com jumpers dupont e USB do ESP como alimentacao. Bateria, TP4056, chave e
+MT3608 testados a parte (MT3608 em 5,0 V medido com multimetro antes de ligar o ESP). O DevKit de
+38 pinos costuma nao deixar furo livre na breadboard: usar duas breadboards ou placa de expansao.
+Perfboard e case sao as ultimas etapas: antes disso, tudo validado em breadboard, incluindo
+temperatura (bateria, TP4056, MT3608), e medidas em `medidas/index.html`. Checklist e ordem em
+`PLANO-3-DIAS.md`, lista de compras do prototipo em `COMPRAS.md`.
 
 ## Case
 
-Aparafusavel, abre pra trocar cartao e bateria. Jack P2 e 5 botoes panel-mount na frente,
-cada fio com service loop + hot glue. OLED atras de janela. Slot do microSD acessivel por
-fresta lateral. TP4056 USB-C e chave em recortes laterais. Amp e DAC perto um do outro,
-ground em estrela no no do MT3608. ESP32 soquetado (barra femea) pra reflashar.
+Mesmo principio de fixacao descrito em `PLANO-3-DIAS.md`: a placa nao e parafusada nem presa por
+espuma. Ela desliza em trilhos impressos nas paredes longas (ranhura ~1,75 mm), com batente na
+ponta do USB-C e na tampa, e fica travada por cola quente nas pontas e no soquete do ESP.
+Botoes 6x6 soldados na placa com tampa impressa na face de cima, chave SS-12D00 em bolsao na
+parede da ponta. TP4056 USB-C soldado na borda da placa, porta no recorte com batente atras.
+Bateria em bolso proprio, longe do MT3608 e do TP4056, com fendas de ventilacao em volta
+(bateria e TP4056 esquentam, ver Termica em `PLANO-3-DIAS.md`). Material PETG. OLED atras de janela, microSD por fresta lateral.
+Ground em estrela no no do MT3608. ESP32 soquetado (barra femea) pra reflashar.

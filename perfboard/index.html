@@ -27,12 +27,12 @@
 <body>
 <div class="wrap">
   <h1>Perfboard do mp3</h1>
-  <p class="sub">Placa 14 col x 28 lin. ESP32 (WROOM-32, 38 pinos) soquetado no topo. Cada modulo (DAC, microSD, OLED, botoes) tem header na placa. Cada furo do header liga num pino do ESP por um fio (VERSO, colorido pela rede + traco). Audio: DAC -> amp -> jack P2. FRENTE = pecas. VERSO = fios (espelhado).</p>
+  <p class="sub">Placa 14 col x 22 lin. ESP32 (WROOM-32, 38 pinos) soquetado no topo. Cada modulo (microSD, OLED, botoes) tem header na placa. Cada furo do header liga num pino do ESP por um fio (VERSO, colorido pela rede + traco). Audio so por Bluetooth (A2DP), sem DAC nem jack. FRENTE = pecas. VERSO = fios (espelhado).</p>
 
   <div class="card">
     <div class="legend" id="legend"></div>
     <svg id="svg" role="img" aria-label="Perfboard do mp3"></svg>
-    <p class="hint">Straps do PCM5102A (FMT/SCK/FLT/DEMP=GND, XSMT=3V3) vao nos trilhos, nao no ESP (ver tabela). Amp EN=VCC. Alimentacao: bateria -> TP4056 -> chave -> boost MT3608 5V -> ESP 5V/VIN.</p>
+    <p class="hint">Alimentacao: bateria -> TP4056 -> chave -> boost MT3608 5V -> ESP 5V/VIN.</p>
   </div>
 
   <div class="card">
@@ -46,18 +46,12 @@
   </div>
 
   <div class="card">
-    <h2>Straps e audio (nao vao no ESP)</h2>
+    <h2>Alimentacao e straps (nao vao no ESP)</h2>
     <table>
       <thead><tr><th>De</th><th>Para</th></tr></thead>
       <tbody>
-        <tr><td>PCM5102A SCK / FMT / FLT / DEMP</td><td>GND</td></tr>
-        <tr><td>PCM5102A XSMT</td><td>3V3 (un-mute)</td></tr>
-        <tr><td>PCM5102A VIN</td><td>5V (LDO faz 3.3V limpo)</td></tr>
         <tr><td>microSD VCC</td><td>3V3 (modulo mini e 3.3V nativo, NAO 5V)</td></tr>
         <tr><td>Divisor bateria (topo)</td><td>VBAT = TP4056 OUT+ (bateria chaveada, ANTES do boost) -> le a celula real</td></tr>
-        <tr><td>PCM5102A LOUT / ROUT / GND</td><td>amp LIN / RIN / GND</td></tr>
-        <tr><td>amp VCC / EN</td><td>5V / VCC (habilitado)</td></tr>
-        <tr><td>amp LOUT / ROUT / GND</td><td>jack P2 tip / ring / sleeve</td></tr>
         <tr><td>Bateria + / -</td><td>TP4056 B+ / B-</td></tr>
         <tr><td>TP4056 OUT+ -> chave -> MT3608 VIN+</td><td>MT3608 VOUT+ (5V) -> ESP 5V/VIN</td></tr>
       </tbody>
@@ -67,7 +61,7 @@
 
 <script>
 (function(){
-  const PITCH=27, PAD=20, COLS=14, ROWS=28;
+  const PITCH=27, PAD=20, COLS=14, ROWS=22;
   const BW=PAD*2+(COLS-1)*PITCH, BH=PAD*2+(ROWS-1)*PITCH;
   const TOP=54, FRONT_OX=150, BACK_OX=150+BW+110, VBW=BACK_OX+BW+30, VBH=TOP+BH+30;
   const hx=(ox,c,m)=> ox+PAD+((m?(COLS-c):(c-1))*PITCH);
@@ -75,30 +69,23 @@
 
   const espTop=['5V','GND','3V3','IO26','IO25','IO27','IO21','IO22','IO18','IO23'];
   const espBot=['IO19','IO17','IO32','IO33','IO13','IO14','IO4','IO16','IO35','',''];
-  const usedTop={1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1,10:1};
+  const usedTop={1:1,2:1,3:1,7:1,8:1,9:1,10:1};
   const usedBot={1:1,2:1,3:1,4:1,5:1,6:1,7:1,8:1,9:1};
 
   // paleta deuteranopia: laranja/azul/rosa/cinza + solido/tracejado/pontilhado
-  const NETC={V5:'#e6a01e',V3:'#e6a01e',GND:'#9aa3b0',ADC:'#9aa3b0',SPI:'#4a9eea',I2C:'#4a9eea',I2S:'#4a9eea',BTN:'#cf82b3',LED:'#cf82b3'};
-  const NETDASH={V5:'',V3:'7 4',GND:'',ADC:'7 4',SPI:'',I2C:'7 4',I2S:'2 5',BTN:'',LED:'7 4'};
-  const NETLBL={V5:'5V',V3:'3V3',GND:'GND',ADC:'bateria',SPI:'SD (SPI)',I2C:'OLED (I2C)',I2S:'DAC (I2S)',BTN:'botao',LED:'LED'};
+  const NETC={V5:'#e6a01e',V3:'#e6a01e',GND:'#9aa3b0',ADC:'#9aa3b0',SPI:'#4a9eea',I2C:'#4a9eea',BTN:'#cf82b3',LED:'#cf82b3'};
+  const NETDASH={V5:'',V3:'7 4',GND:'',ADC:'7 4',SPI:'',I2C:'7 4',BTN:'',LED:'7 4'};
+  const NETLBL={V5:'5V',V3:'3V3',GND:'GND',ADC:'bateria',SPI:'SD (SPI)',I2C:'OLED (I2C)',BTN:'botao',LED:'LED'};
 
   const P={'5V':[1,1],'GND':[2,1],'3V3':[3,1],'IO26':[4,1],'IO25':[5,1],'IO27':[6,1],'IO21':[7,1],'IO22':[8,1],'IO18':[9,1],'IO23':[10,1],
-           'IO19':[1,8],'IO17':[2,8],'IO32':[3,8],'IO33':[4,8],'IO13':[5,8],'IO14':[6,8],'IO4':[7,8],'IO16':[8,8],'IO35':[9,8],'VBAT':[11,12]};
+           'IO19':[1,8],'IO17':[2,8],'IO32':[3,8],'IO33':[4,8],'IO13':[5,8],'IO14':[6,8],'IO4':[7,8],'IO16':[8,8],'IO35':[9,8],'VBAT':[11,10]};
 
-  const dacHdr={row:11, col:1, pins:['BCK','LCK','DIN','VIN','GND']};
-  const sdHdr ={row:15, col:1, pins:['SCK','MOSI','MISO','CS','VCC','GND']};
-  const oledHdr={row:19, col:1, pins:['SDA','SCL','VCC','GND']};
-  const btHdr ={row:23, col:1, pins:['PP','NX','PV','V+','V-','GND']};
+    const sdHdr ={row:11, col:1, pins:['SCK','MOSI','MISO','CS','VCC','GND']};
+  const oledHdr={row:15, col:1, pins:['SDA','SCL','VCC','GND']};
+  const btHdr ={row:19, col:1, pins:['PP','NX','PV','V+','V-','GND']};
   const H=(hd,i)=>[hd.col+i,hd.row];
 
   const wires=[
-    // DAC I2S (BCK/LCK/DIN pro ESP; VIN=5V; GND)
-    {net:'I2S',a:H(dacHdr,0),b:P['IO26'],t:'BCK'},
-    {net:'I2S',a:H(dacHdr,1),b:P['IO25'],t:'LCK'},
-    {net:'I2S',a:H(dacHdr,2),b:P['IO27'],t:'DIN'},
-    {net:'V5', a:H(dacHdr,3),b:P['5V'], t:'VIN'},
-    {net:'GND',a:H(dacHdr,4),b:P['GND'],t:'GND'},
     // SD VSPI
     {net:'SPI',a:H(sdHdr,0),b:P['IO18'],t:'SCK'},
     {net:'SPI',a:H(sdHdr,1),b:P['IO23'],t:'MOSI'},
@@ -144,7 +131,7 @@
     const el=Math.min(hx(ox,1,m),hx(ox,10,m))-14, er=Math.max(hx(ox,1,m),hx(ox,10,m))+14;
     let s=`<g${gc}><rect class="esp" x="${el}" y="${hy(1)-14}" width="${er-el}" height="${hy(8)-hy(1)+28}" rx="8"/>`;
     if(!ghost){ s+=`<text class="ptag" x="${(el+er)/2}" y="${hy(1)-19}" text-anchor="middle">ESP32 DevKit (WROOM-32, 38 pinos)</text>`;
-      s+=`<text class="pad" x="${(el+er)/2}" y="${(hy(1)+hy(8))/2+4}" text-anchor="middle">soquetado, Bluetooth A2DP + I2S</text>`; }
+      s+=`<text class="pad" x="${(el+er)/2}" y="${(hy(1)+hy(8))/2+4}" text-anchor="middle">soquetado, Bluetooth A2DP</text>`; }
     for(let c=1;c<=10;c++){ const ut=usedTop[c];
       s+=pad(ox,c,1,m,ut?'padU':'padE');
       if(!ghost&&espTop[c-1]) s+=`<text class="${ut?'plU':'pl'}" x="${hx(ox,c,m)}" y="${hy(1)+15}" text-anchor="middle">${espTop[c-1]}</text>`; }
@@ -204,7 +191,6 @@
     +'</style>';
   g+=board(FRONT_OX,false,'FRENTE: pecas + headers');
   g+=esp(FRONT_OX,false,false);
-  g+=header(FRONT_OX,false,dacHdr,'DAC PCM5102A',false);
   g+=header(FRONT_OX,false,sdHdr,'microSD',false);
   g+=header(FRONT_OX,false,oledHdr,'OLED',false);
   g+=header(FRONT_OX,false,btHdr,'5 botoes',false);
@@ -213,7 +199,6 @@
   g+=resistor(FRONT_OX,false,Rb2,'R100k',false,'R');
   g+=board(BACK_OX,true,'VERSO: fios (espelhado)');
   g+=esp(BACK_OX,true,true);
-  g+=header(BACK_OX,true,dacHdr,'',true);
   g+=header(BACK_OX,true,sdHdr,'',true);
   g+=header(BACK_OX,true,oledHdr,'',true);
   g+=header(BACK_OX,true,btHdr,'',true);
@@ -228,20 +213,17 @@
     Object.keys(NETLBL).map(n=>`<span><svg width="24" height="10" style="vertical-align:middle"><line x1="1" y1="5" x2="23" y2="5" stroke="${NETC[n]}" stroke-width="3" stroke-dasharray="${NETDASH[n]||''}"/></svg> ${NETLBL[n]}</span>`).join('');
 
   const comps=[
-    ['ESP32 DevKit','placa (38 pinos)','WROOM-32','A2DP + I2S, soquetado'],
-    ['PCM5102A','DAC I2S','GY-PCM5102A','saida line-level'],
-    ['Amp de fone','amp estereo ground-ref','PAM8908/TPA6132','driva 32ohm'],
+    ['ESP32 DevKit','placa (38 pinos)','WROOM-32','A2DP, soquetado'],
     ['microSD','modulo cartao','SPI (VSPI)','biblioteca'],
     ['OLED','display','SSD1306 0.96" I2C','navegacao'],
-    ['5x botao','tactil momentario','-','play/next/prev/vol'],
+    ['5x botao','tactil 6x6 momentaneo','-','play/next/prev/vol (mesmo do pin)'],
     ['LED','LED 5mm + R330','-','status (IO16)'],
-    ['Jack P2','3.5mm estereo femea','painel','saida fone'],
     ['MT3608','boost','5.0V','rail limpo'],
     ['TP4056','carregador USB-C','protecao DW01','carrega desligado'],
     ['Bateria','LiPo 18650','3.7V','protegida'],
-    ['Chave','deslizante','SS-12D00','liga/desliga'],
+    ['Chave','deslizante','SS-12D00','liga/desliga (mesma do pin)'],
     ['R','resistor','2x100k + 330','divisor + LED'],
-    ['C','capacitor','470-1000uF, 100nF, 10uF','bulk/decoupling/DAC']
+    ['C','capacitor','470-1000uF, 100nF','bulk/decoupling']
   ];
   document.querySelector('#ctable tbody').innerHTML =
     comps.map(c=>`<tr><td>${c[0]}</td><td>${c[1]}</td><td>${c[2]}</td><td><small>${c[3]}</small></td></tr>`).join('');
@@ -249,8 +231,7 @@
   const espName={'1,1':'ESP 5V','2,1':'ESP GND','3,1':'ESP 3V3','4,1':'ESP IO26','5,1':'ESP IO25','6,1':'ESP IO27','7,1':'ESP IO21','8,1':'ESP IO22','9,1':'ESP IO18','10,1':'ESP IO23',
     '1,8':'ESP IO19','2,8':'ESP IO17','3,8':'ESP IO32','4,8':'ESP IO33','5,8':'ESP IO13','6,8':'ESP IO14','7,8':'ESP IO4','8,8':'ESP IO16','9,8':'ESP IO35',
     '11,12':'VBAT (bateria chaveada, ANTES do boost)'};
-  const hdrName=(p)=>{ if(p[1]===dacHdr.row)return 'DAC '+dacHdr.pins[p[0]-dacHdr.col];
-    if(p[1]===sdHdr.row)return 'SD '+sdHdr.pins[p[0]-sdHdr.col];
+  const hdrName=(p)=>{ if(p[1]===sdHdr.row)return 'SD '+sdHdr.pins[p[0]-sdHdr.col];
     if(p[1]===oledHdr.row)return 'OLED '+oledHdr.pins[p[0]-oledHdr.col];
     if(p[1]===btHdr.row)return 'botao '+btHdr.pins[p[0]-btHdr.col];
     if(p[0]===12)return 'Rled'; if(p[0]===13)return 'divisor';

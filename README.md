@@ -15,16 +15,13 @@ small screen.
 
 ## Audio out
 
-Two ways to listen:
+Bluetooth only. The player streams to wireless headphones over A2DP, so the board is a
+classic dual core ESP32 (the C3 cannot do A2DP audio). No DAC, no amp, no headphone jack:
+fewer parts, smaller board, lower cost.
 
-* **Wired:** a PCM5102A I2S DAC into a dedicated headphone amp, out to a 3.5mm jack.
-  Clean and cheap on battery, radio stays off.
-* **Bluetooth:** the player streams to wireless headphones over A2DP. This is a core
-  feature, so the board is a classic dual core ESP32 (the C3 cannot do A2DP audio).
-
-Bluetooth breaks the usual marmota rule of radios off, on purpose. Wireless is worth
-a radio. Pick wired when you want the longest battery life, Bluetooth when you want
-no cable. Your choice, every time.
+Bluetooth breaks the usual marmota rule of radios off, on purpose. Wireless sound is worth
+a radio. The WiFi portal and Bluetooth never run together: opening the portal to upload
+tracks turns Bluetooth off, and the other way around.
 
 ## Storage
 
@@ -51,36 +48,32 @@ phone, upload tracks and edit playlists, then the radio sleeps. Same pattern as 
 
 ## BOM and cost
 
-Rough per unit, in BRL. Modules on perfboard, hand assembled, no custom PCB. Nothing
-is removed from the earlier spec. The cost drop comes from sourcing the cheap parts on
-AliExpress in one consolidated order. Batteries stay local. Import tax can nibble at
-the savings, so these are the good case.
+Rough per unit, in BRL, retail Brazilian prices. Modules on perfboard, hand assembled, no custom PCB.
+Ordering the cheap parts from AliExpress in bulk cuts about 20-30% off.
 
 | Part | Note | Price |
 |---|---|---|
-| ESP32 classic devkit | dual core, needs A2DP, sourced cheap | 25 |
-| PCM5102A DAC module | I2S audio out | 12 |
-| Headphone amp module | NS8002 or similar | 5 |
-| microSD module | library storage | 4 |
-| microSD 8 GB card | reuse an old card if possible | 5 |
-| OLED SSD1306 0.96 I2C | track and playlist | 10 |
-| Buttons | play, next, prev, volume x2 | 5 |
-| 3.5mm jack | headphone out | 3 |
-| 18650 cell | recycled where possible | 5 |
-| 18650 holder | | 3 |
-| TP4056 USB-C | charger | 2 |
-| Power switch | slide | 2 |
+| ESP32 classic devkit | dual core, needs A2DP | 35 |
+| microSD module | library storage | 6 |
+| microSD 8 GB card | reuse an old card if possible | 8 |
+| OLED SSD1306 0.96 I2C | track and playlist | 20 |
+| MT3608 boost | 3.7 V to 5 V for the ESP | 10 |
+| Buttons | play, next, prev, volume x2, 6x6 tact as in the pin | 2 |
+| 18650 cell | | 15 |
+| 18650 holder | | 4 |
+| TP4056 USB-C | charger | 5 |
+| Power switch | SS-12D00 slide, as in the pin | 2 |
 | LED | status | 1 |
-| Passives and wires | | 6 |
-| Perfboard | | 4 |
-| Case | 3D print, commissioned, screw-openable | 18 |
-| Packaging and stickers | simple box, small labels | 5 |
+| Passives, diode, wires | | 8 |
+| Perfboard | | 6 |
+| Female headers | ESP socket | 5 |
+| Case | own printer, PETG filament | 4 |
 
-Component cost is about **R$115** per unit, down from R$160 by cheaper sourcing alone.
+Component cost is about **R$130** per unit (range R$105-160).
 
 Price is cost plus assembly time plus a light 25% markup to cover fees, failures and
-the odd warranty. About R$115 in parts, 3 hours at R$25 an hour, then +25%:
-**around R$240**.
+the odd warranty. About R$130 in parts, 3 hours at R$25 an hour, then +25%:
+**around R$255**.
 
 ## Principles
 
@@ -89,11 +82,16 @@ only when you ask, with Bluetooth as the one deliberate exception for wireless s
 
 ## Build
 
-Hand soldered on perfboard. Follow the marmota
+Prototype first: wire everything on a breadboard with jumpers (almost no soldering) and iterate
+on pins, firmware, power and heat. Then measure every part (`medidas/`). Perfboard and case come
+last, once the prototype is validated. The battery runs warm, so the case is vented.
+
+Then hand solder on perfboard. Follow the marmota
 [build standard](https://github.com/gustavosilveiragss/marmota#build-standard):
-minimal solder, strain relief, panel-mount hardware, board screwed to standoffs.
-Strain relief the battery, the headphone jack and the display wiring.
+minimal solder, strain relief. The board is never screwed and never held by foam: it slides into
+printed rails in the case and is locked with hot glue. Strain relief the battery and the display
+wiring.
 
 ## Status
 
-Idea stage, decisions locked. No code yet. Board is a classic ESP32 for A2DP.
+Idea stage, decisions locked. Firmware scaffold compiles. Next step: breadboard prototype. Board is a classic ESP32 for A2DP.

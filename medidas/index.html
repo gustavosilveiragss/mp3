@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Medidas do mp3</title>
+<style>
+  :root{--bg:#0f1420;--panel:#161d2c;--ink:#e6e9ef;--muted:#93a0b5;--line:#2a3550;--acc:#e6a01e;--ok:#4fbf8a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px 16px}
+  h1{font-size:22px;margin:0 0 4px}
+  p.sub{color:var(--muted);margin:0 0 16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:18px}
+  h2{font-size:17px;margin:0 0 4px}
+  .views{display:flex;flex-wrap:wrap;gap:12px;margin:8px 0}
+  .views figure{margin:0;background:#0c1220;border:1px solid var(--line);border-radius:10px;padding:6px;flex:1 1 300px}
+  figcaption{color:var(--muted);font-size:12.5px;text-align:center}
+  svg{width:100%;height:auto;display:block}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+  th{background:#1c2436;color:#a9bcd8}
+  td.id{font-weight:700;color:var(--acc);white-space:nowrap}
+  input{width:90px;background:#0c1220;color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:inherit}
+  input.done{border-color:var(--ok)}
+  .bar{position:sticky;top:0;background:var(--bg);padding:10px 0;z-index:2;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  button{background:var(--acc);color:#1a1405;border:0;border-radius:8px;padding:8px 14px;font:600 14px system-ui;cursor:pointer}
+  button.sec{background:#243049;color:var(--ink)}
+  textarea{width:100%;min-height:120px;background:#0c1220;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;font:13px ui-monospace,monospace}
+  ul.how{margin:6px 0 0 18px;color:var(--muted)}
+  @media print{.bar{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Medidas do mp3</h1>
+  <p class="sub">Meça cada cota com paquímetro, na peça real, em mm. Cada letra no desenho é um ID. Preencha aqui e me mande o texto copiado no fim.</p>
+
+  <div class="card">
+    <h2>Como medir</h2>
+    <ul class="how">
+      <li>Use paquímetro (resolução 0,05 mm ou melhor). Meça a peça que você vai usar, não o datasheet.</li>
+      <li>Meça 3 vezes e anote a média. Se variar mais de 0,2 mm, anote o maior valor e escreva "máx" na nota.</li>
+      <li>Setas mostram onde medir. Vista de cima = olhando a peça de frente; vista lateral = de perfil.</li>
+      <li>Peça que ainda não chegou: deixe em branco. Eu projeto só os trilhos e bolsões das peças preenchidas.</li>
+    </ul>
+  </div>
+
+  <div class="bar">
+    <button id="copy">Copiar valores</button>
+    <button class="sec" id="clear">Limpar tudo</button>
+    <span id="prog" style="color:var(--muted)"></span>
+  </div>
+  <div id="parts"></div>
+  <div class="card"><h2>Texto para me enviar</h2><textarea id="out" readonly></textarea></div>
+</div>
+
+<script>
+(function(){
+const R=(x,y,w,h,c)=>['r',x,y,w,h,c||'b'], C=(x,y,r,c)=>['c',x,y,r,c||'h'];
+const parts=[
+{id:'PB',name:'Perfboard',note:'A placa onde tudo será soldado. Compre uma com furos de canto só se quiser; os trilhos não precisam.',
+ views:[
+  {t:'Vista de cima',w:40,h:60,s:[R(0,0,40,60),C(2.5,2.5,.8),C(37.5,2.5,.8),C(2.5,57.5,.8),C(37.5,57.5,.8),...[0,1,2,3,4,5,6,7,8,9].map(i=>C(2.5+i*2.54,30,.5))],
+   d:[['PB-L',0,0,0,60,-30],['PB-W',0,60,40,60,26],['PB-E',0,2.5,2.5,2.5,-18],['PB-P',2.5,30,27.36,30,18]]},
+  {t:'Vista lateral',w:60,h:1.6,s:[R(0,0,60,1.6)],d:[['PB-T',60,0,60,1.6,22]]}],
+ dims:{'PB-L':['Comprimento','Lado maior, ponta a ponta'],'PB-W':['Largura','Lado menor, ponta a ponta'],'PB-E':['Borda até o 1º furo','Da borda ao centro do primeiro furo'],'PB-P':['10 furos','Centro do 1º ao centro do 10º furo na mesma fileira (eu divido por 9)'],'PB-T':['Espessura','Só a placa, sem solda. Define a folga do trilho']}},
+{id:'ES',name:'ESP32 DevKit 38 pinos',note:'Medidas do módulo já com pinos. Se for soquetar, meça também a barra fêmea (SK).',
+ views:[
+  {t:'Vista de cima',w:28,h:58,s:[R(0,0,28,55),R(3,0,22,25,'p'),R(.8,3,2.5,48,'h'),R(24.7,3,2.5,48,'h'),R(9,55,10,3,'p')],
+   d:[['ES-L',28,0,28,55,26],['ES-W',0,0,28,0,-22],['ES-R',2,40,26,40,0],['ES-UW',9,58,19,58,16],['ES-UO',9,55,9,58,-22]]},
+  {t:'Vista lateral',w:55,h:8,s:[R(2,0,24,3.5,'p'),R(0,3.5,55,1.6),R(3,5.1,49,2.5,'h')],d:[['ES-H',0,0,0,3.5,-22],['ES-T',55,3.5,55,5.1,18],['ES-PL',55,5.1,55,7.6,40]]}],
+ dims:{'ES-L':['Comprimento da placa','Sem a porta USB'],'ES-W':['Largura da placa','De borda a borda'],'ES-R':['Distância entre fileiras de pinos','Centro de uma fileira ao centro da outra'],'ES-UW':['Largura da porta micro-USB','Metal da porta'],'ES-UO':['Saliência da USB','Quanto a porta passa da borda da placa'],'ES-H':['Altura do maior componente','Do topo da placa até o topo do maior componente (metal do módulo)'],'ES-T':['Espessura da placa','PCB sem componentes'],'ES-PL':['Pino abaixo da placa','Comprimento dos pinos pra baixo']}},
+{id:'SK',name:'Barra fêmea (soquete do ESP)',note:'Meça quando comprar. Define a altura total ESP + soquete.',
+ views:[{t:'Vista lateral',w:10,h:12,s:[R(0,0,10,8.5),R(3.8,8.5,2.4,3,'h')],d:[['SK-H',10,0,10,8.5,18],['SK-PL',10,8.5,10,11.5,18]]}],
+ dims:{'SK-H':['Altura do corpo','Da base preta ao topo'],'SK-PL':['Perna abaixo','Perna que entra na perfboard']}},
+{id:'SD',name:'Módulo microSD (SPI)',note:'A fresta do cartão precisa ficar acessível pela lateral do case.',
+ views:[
+  {t:'Vista de cima',w:24,h:32,s:[R(0,0,24,26),R(3,20,18,6,'p'),R(4,18,16,14,'h')],d:[['SD-L',0,0,0,26,-26],['SD-W',0,0,24,0,-22],['SD-SW',3,26,21,26,22],['SD-CP',24,26,24,32,16]]},
+  {t:'Vista lateral',w:26,h:5,s:[R(3,0,20,3.4,'p'),R(0,3.4,26,1.6)],d:[['SD-H',26,0,26,3.4,18],['SD-T',0,3.4,0,5,-18]]}],
+ dims:{'SD-L':['Comprimento da placa','Da borda dos pinos até a borda da fresta'],'SD-W':['Largura da placa','Lado a lado'],'SD-SW':['Largura da fresta','Abertura onde entra o cartão'],'SD-CP':['Cartão pra fora','Quanto o cartão inserido sai da borda do módulo'],'SD-H':['Altura da carcaça','Do topo da placa ao topo do metal da fresta'],'SD-T':['Espessura da placa','PCB sem componentes']}},
+{id:'OL',name:'OLED SSD1306 0,96"',note:'A janela do case alinha com a área visível do vidro.',
+ views:[
+  {t:'Vista de cima',w:28,h:28,s:[R(0,0,27,28),R(1.5,6,24,13,'p')],d:[['OL-L',0,0,0,28,-30],['OL-W',0,28,27,28,18],['OL-VW',1.5,12,25.5,12,0],['OL-VH',13,6,13,19,0],['OL-VY',27,0,27,6,24],['OL-VX',0,3,1.5,3,-16]]},
+  {t:'Vista lateral',w:27,h:5,s:[R(1.5,0,24,2.4,'p'),R(0,2.4,27,1.6)],d:[['OL-T',27,0,27,4,18]]}],
+ dims:{'OL-L':['Comprimento da placa','Lado maior'],'OL-W':['Largura da placa','Lado menor'],'OL-VW':['Largura do vidro visível','Só a área que acende, sem a moldura preta'],'OL-VH':['Altura do vidro visível','Só a área que acende'],'OL-VY':['Janela: distância da borda de cima','Da borda da placa até o começo da área visível'],'OL-VX':['Janela: distância da borda esquerda','Da borda da placa até o começo da área visível'],'OL-T':['Espessura total','Placa + vidro, sem pinos']}},
+{id:'TP',name:'TP4056 USB-C',note:'Parte crítica: a porta USB-C precisa alinhar com o recorte da parede.',
+ views:[
+  {t:'Vista de cima',w:17,h:30,s:[R(0,2,17,26),R(4,0,9,8.5,'p')],d:[['TP-L',17,2,17,28,26],['TP-W',0,28,17,28,18],['TP-UW',4,0,13,0,-18],['TP-UO',0,0,0,2,-26],['TP-UX',0,14,8.5,14,0]]},
+  {t:'Vista lateral',w:28,h:6,s:[R(0,0,8.5,3.3,'p'),R(2,3.3,26,1.6),R(14,1.5,6,1.8,'h')],d:[['TP-UH',0,0,0,3.3,-18],['TP-T',28,3.3,28,4.9,18],['TP-H',20,1.5,20,3.3,30]]}],
+ dims:{'TP-L':['Comprimento da placa','Sem a saliência da porta'],'TP-W':['Largura da placa','Lado a lado'],'TP-UW':['Largura da porta USB-C','Metal, lado maior'],'TP-UO':['Saliência da porta','Quanto o metal passa da borda da placa'],'TP-UX':['Centro da porta','Da borda da placa até o centro da porta'],'TP-UH':['Altura da porta','Metal, lado menor'],'TP-T':['Espessura da placa','PCB sem componentes'],'TP-H':['Maior componente','Altura do componente mais alto sobre a placa (fora a porta)']}},
+{id:'CB',name:'Plugue do cabo USB-C',note:'Meça o plugue que você realmente usa para carregar. O recorte do case precisa deixar ele entrar.',
+ views:[
+  {t:'Vista de cima',w:16,h:30,s:[R(0,5,16,25),R(3.5,0,9,5,'p')],d:[['CB-W',0,30,16,30,18],['CB-L',16,5,16,30,18]]},
+  {t:'Vista lateral',w:30,h:8,s:[R(5,0,25,8),R(0,2.5,5,3.3,'p')],d:[['CB-H',30,0,30,8,18]]}],
+ dims:{'CB-W':['Largura da capa de borracha','Parte grossa do plugue, lado maior'],'CB-L':['Comprimento da capa','Da ponta do metal até onde o cabo fino começa'],'CB-H':['Altura da capa','Parte grossa do plugue, lado menor']}},
+{id:'MT',name:'MT3608 (boost)',note:'',
+ views:[
+  {t:'Vista de cima',w:22,h:17,s:[R(0,0,22,17),R(2,2,8,8,'p'),R(14,10,4,4,'h')],d:[['MT-L',0,17,22,17,18],['MT-W',22,0,22,17,18]]},
+  {t:'Vista lateral',w:22,h:6,s:[R(2,0,8,4,'p'),R(0,4,22,1.6)],d:[['MT-H',0,0,0,4,-18]]}],
+ dims:{'MT-L':['Comprimento','Lado maior'],'MT-W':['Largura','Lado menor'],'MT-H':['Altura do maior componente','Normalmente o indutor, sobre a placa']}},
+{id:'BH',name:'Suporte e bateria 18650',note:'Meça o suporte com a bateria dentro. Bateria protegida é mais comprida que a sem proteção.',
+ views:[
+  {t:'Vista de cima',w:78,h:22,s:[R(0,0,78,22),R(4,2,70,18,'h')],d:[['BH-L',0,22,78,22,22],['BH-W',78,0,78,22,22],['BC-L',4,2,74,2,-18],['BC-D',4,2,4,20,-18]]},
+  {t:'Vista lateral',w:78,h:20,s:[R(0,0,78,20)],d:[['BH-H',78,0,78,20,22]]}],
+ dims:{'BH-L':['Comprimento do suporte','Com a bateria dentro, ponta a ponta'],'BH-W':['Largura do suporte','Lado a lado'],'BH-H':['Altura do suporte','Com a bateria dentro'],'BC-L':['Comprimento da bateria','Só a célula, de polo a polo'],'BC-D':['Diâmetro da bateria','Meça no meio, com a capa']}},
+{id:'SW',name:'Chave SS-12D00',note:'Fica em bolsão na parede da ponta.',
+ views:[
+  {t:'Vista de cima',w:14,h:8,s:[R(1,2,10,4),R(3,0,3,2,'p'),C(3,7,.5),C(6,7,.5),C(9,7,.5)],d:[['SW-L',1,2,11,2,-20],['SW-W',11,2,11,6,18],['SW-P',3,7,6,7,18]]},
+  {t:'Vista lateral',w:14,h:12,s:[R(1,3,10,4),R(4,0,3,3,'p'),R(5,7,1,3,'h')],d:[['SW-H',11,3,11,7,22],['SW-LH',7,0,7,3,24],['SW-PL',6,7,6,10,22]]}],
+ dims:{'SW-L':['Comprimento do corpo','Lado maior, sem pinos'],'SW-W':['Largura do corpo','Lado menor, sem pinos'],'SW-P':['Passo dos pinos','Centro a centro entre dois pinos vizinhos'],'SW-H':['Altura do corpo','Sem alavanca e sem pinos'],'SW-LH':['Alavanca pra cima','Da superfície do corpo ao topo da alavanca'],'SW-PL':['Pino abaixo','Comprimento dos pinos pra baixo']}},
+{id:'BT',name:'Botão tátil 6×6',note:'Mesmo botão do pin.',
+ views:[
+  {t:'Vista de cima',w:8,h:8,s:[R(1,1,6,6),C(4,4,1.7,'p'),C(0,2,.4),C(8,2,.4),C(0,6,.4),C(8,6,.4)],d:[['BT-B',1,7,7,7,18],['BT-PD',2.3,4,5.7,4,0],['BT-PX',0,2,8,2,-18],['BT-PY',0,2,0,6,-18]]},
+  {t:'Vista lateral',w:8,h:10,s:[R(1,3.5,6,3.5),R(2.8,0,2.4,3.5,'p'),R(2,7,.6,3,'h'),R(5.4,7,.6,3,'h')],d:[['BT-H',7,3.5,7,7,18],['BT-PH',5.2,0,5.2,3.5,26],['BT-LL',6,7,6,10,28]]}],
+ dims:{'BT-B':['Lado do corpo','Quadrado do corpo, sem pernas'],'BT-PD':['Diâmetro do êmbolo','O pino de apertar'],'BT-PX':['Pernas: distância X','Centro de uma perna ao centro da perna do outro lado, na largura'],'BT-PY':['Pernas: distância Y','Centro a centro, na outra direção'],'BT-H':['Altura do corpo','Sem êmbolo e sem pernas'],'BT-PH':['Êmbolo pra cima','Do topo do corpo ao topo do êmbolo'],'BT-LL':['Perna abaixo','Comprimento da perna pra baixo']}},
+{id:'CP',name:'Capacitor eletrolítico 470-1000 µF',note:'Provavelmente o componente mais alto da placa.',
+ views:[
+  {t:'Vista de cima',w:10,h:10,s:[C(5,5,5,'b'),C(2.5,5,.4),C(7.5,5,.4)],d:[['CP-D',0,10,10,10,18],['CP-S',2.5,5,7.5,5,0]]},
+  {t:'Vista lateral',w:10,h:17,s:[R(0,0,10,13),R(2.2,13,.5,4,'h'),R(7.3,13,.5,4,'h')],d:[['CP-H',10,0,10,13,18]]}],
+ dims:{'CP-D':['Diâmetro','Do corpo cilíndrico'],'CP-S':['Distância entre pernas','Centro a centro'],'CP-H':['Altura do corpo','Sem as pernas']}},
+{id:'LD',name:'LED 5 mm',note:'Define o furo (se houver) para o LED no case.',
+ views:[
+  {t:'Vista de cima',w:6,h:6,s:[C(3,3,2.9,'h'),C(3,3,2.5,'p')],d:[['LD-D',.5,3,5.5,3,0],['LD-FD',.1,6,5.9,6,16]]},
+  {t:'Vista lateral',w:6,h:7,s:[R(.1,5,5.8,.9,'h'),R(.5,0,5,5,'p')],d:[['LD-H',6,0,6,6,18]]}],
+ dims:{'LD-D':['Diâmetro da cúpula','Parte transparente'],'LD-FD':['Diâmetro da base','Aba maior embaixo da cúpula'],'LD-H':['Altura','Da base da aba ao topo da cúpula']}}
+];
+
+const NS='http://www.w3.org/2000/svg', M=64;
+function svgFor(v){
+  const s=Math.min(300/v.w,230/v.h), W=v.w*s+2*M, H=v.h*s+2*M;
+  const X=x=>M+x*s, Y=y=>M+y*s;
+  let o=`<svg viewBox="0 0 ${W} ${H}" role="img"><defs><marker id="a" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto-start-reverse"><path d="M0,0 L7,3.5 L0,7 z" fill="#e6a01e"/></marker></defs>`;
+  const fill={b:'#20303f',p:'#2c4a7a',h:'#3a4660'};
+  for(const k of v.s){
+    if(k[0]==='r') o+=`<rect x="${X(k[1])}" y="${Y(k[2])}" width="${k[3]*s}" height="${k[4]*s}" rx="2" fill="${fill[k[5]]}" stroke="#6b7c99"/>`;
+    else o+=`<circle cx="${X(k[1])}" cy="${Y(k[2])}" r="${Math.max(k[3]*s,1.5)}" fill="${fill[k[4]]}" stroke="#6b7c99"/>`;
+  }
+  for(const [id,x1,y1,x2,y2,off] of v.d){
+    const hor=y1===y2; let a1,b1,a2,b2,mx,my;
+    if(hor){ const ly=Y(y1)+off; a1=X(x1);b1=ly;a2=X(x2);b2=ly; o+=`<line x1="${X(x1)}" y1="${Y(y1)}" x2="${a1}" y2="${ly}" stroke="#e6a01e" stroke-dasharray="3 3" opacity=".6"/><line x1="${X(x2)}" y1="${Y(y2)}" x2="${a2}" y2="${ly}" stroke="#e6a01e" stroke-dasharray="3 3" opacity=".6"/>`; mx=(a1+a2)/2;my=ly; }
+    else { const lx=X(x1)+off; a1=lx;b1=Y(y1);a2=lx;b2=Y(y2); o+=`<line x1="${X(x1)}" y1="${Y(y1)}" x2="${lx}" y2="${b1}" stroke="#e6a01e" stroke-dasharray="3 3" opacity=".6"/><line x1="${X(x2)}" y1="${Y(y2)}" x2="${lx}" y2="${b2}" stroke="#e6a01e" stroke-dasharray="3 3" opacity=".6"/>`; mx=lx;my=(b1+b2)/2; }
+    o+=`<line x1="${a1}" y1="${b1}" x2="${a2}" y2="${b2}" stroke="#e6a01e" stroke-width="1.6" marker-start="url(#a)" marker-end="url(#a)"/>`;
+    const w=id.length*7+8;
+    o+=`<rect x="${mx-w/2}" y="${my-9}" width="${w}" height="16" rx="4" fill="#0f1420" stroke="#e6a01e"/><text x="${mx}" y="${my+3}" text-anchor="middle" fill="#e6a01e" font-size="11" font-weight="700">${id}</text>`;
+  }
+  return o+'</svg>';
+}
+
+const store=(()=>{try{return JSON.parse(localStorage.getItem('mp3-medidas')||'{}')}catch(e){return{}}})();
+const save=()=>{try{localStorage.setItem('mp3-medidas',JSON.stringify(store))}catch(e){}};
+const total=parts.reduce((n,p)=>n+Object.keys(p.dims).length,0);
+
+document.getElementById('parts').innerHTML=parts.map(p=>
+ `<div class="card"><h2>${p.name} <small style="color:var(--muted)">(${p.id})</small></h2>${p.note?`<p class="sub" style="margin:0">${p.note}</p>`:''}
+  <div class="views">${p.views.map(v=>`<figure>${svgFor(v)}<figcaption>${v.t}</figcaption></figure>`).join('')}</div>
+  <table><thead><tr><th>ID</th><th>O que medir</th><th>Como</th><th>mm</th></tr></thead><tbody>
+  ${Object.entries(p.dims).map(([id,[a,b]])=>`<tr><td class="id">${id}</td><td>${a}</td><td>${b}</td><td><input data-id="${id}" inputmode="decimal" value="${store[id]||''}"></td></tr>`).join('')}
+  </tbody></table></div>`).join('');
+
+function refresh(){
+  const filled=Object.values(store).filter(v=>v!=='').length;
+  document.getElementById('prog').textContent=filled+' de '+total+' medidas';
+  const lines=[];
+  for(const p of parts){ const rows=Object.keys(p.dims).filter(id=>store[id]).map(id=>`${id} = ${store[id]}`);
+    if(rows.length) lines.push('# '+p.name,...rows,''); }
+  document.getElementById('out').value=lines.join('\n');
+  document.querySelectorAll('input[data-id]').forEach(i=>i.classList.toggle('done',!!i.value));
+}
+document.getElementById('parts').addEventListener('input',e=>{const i=e.target; if(!i.dataset.id)return; store[i.dataset.id]=i.value.replace(',','.').trim(); save(); refresh();});
+document.getElementById('copy').onclick=()=>{const t=document.getElementById('out'); t.select(); try{document.execCommand('copy')}catch(e){}};
+document.getElementById('clear').onclick=()=>{if(confirm('Apagar todas as medidas preenchidas?')){for(const k in store)delete store[k]; save(); document.querySelectorAll('input[data-id]').forEach(i=>i.value=''); refresh();}};
+refresh();
+})();
+</script>
+</body>
+</html>

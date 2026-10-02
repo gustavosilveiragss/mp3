@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breadboard do mp3</title>
+<style>
+  :root{--bg:#f4f1ea;--panel:#fff;--ink:#1d2330;--muted:#5d6676;--line:#d9d4c7;--board:#f7f5ef;--hole:#8d8a80;--esp:#14213d}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,sans-serif}
+  .wrap{max-width:1000px;margin:0 auto;padding:20px 16px}
+  h1{font-size:22px;margin:0 0 4px}
+  h2{font-size:16px;margin:0 0 8px}
+  p.sub{color:var(--muted);margin:0 0 16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+  svg{width:100%;max-width:620px;height:auto;display:block;margin:0 auto}
+  .steps{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+  .steps button{font:inherit;padding:6px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer}
+  .steps button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+  th{background:#efeadc}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:6px;border:1px solid #0003}
+  .note{color:var(--muted);font-size:13.5px}
+  code{background:#efeadc;padding:1px 5px;border-radius:4px}
+  svg text{font-family:system-ui,sans-serif}
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#10141c;--panel:#171d29;--ink:#e6e9ef;--muted:#9aa5b8;--line:#2b3548;--board:#e9e6dc}
+    .steps button{background:#171d29}
+    .steps button[aria-pressed=true]{background:#e6e9ef;color:#10141c}
+    th{background:#1d2535} code{background:#1d2535}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Breadboard do mp3 (etapa 0A)</h1>
+  <p class="sub">Duas breadboards pequenas, ESP32 DevKit de 30 pinos sobre as duas (USB para cima, vista de cima). Alimentação só pelo USB. Sem resistor: LED, divisor e bateria ficam fora.</p>
+
+  <div class="card">
+    <div class="steps" id="steps"></div>
+    <svg id="svg" viewBox="0 0 690 640" role="img" aria-label="Breadboards com ESP32, OLED e botões"></svg>
+    <p class="note" id="stepnote"></p>
+  </div>
+
+  <div class="card">
+    <h2>Fios do passo</h2>
+    <table id="wtable"><thead><tr><th>#</th><th>Cor</th><th>De</th><th>Para</th><th>Sinal</th></tr></thead><tbody></tbody></table>
+    <p class="note">Esq e Dir são as breadboards vistas de cima. Letras e números são os impressos nelas. Cada fileira de 5 furos (a-e ou f-j) é um contato só: o pino do ESP ocupa 1 furo e os outros 4 ficam livres (use f, g, h na esquerda e c, d, e na direita, que ficam fora do corpo do ESP).</p>
+  </div>
+
+  <div class="card">
+    <h2>Notas de montagem</h2>
+    <ul class="note">
+      <li>Posição: encaixe o ESP com 3V3 e VIN na linha 1 de cada breadboard (se for outra linha, desloque todos os números). Pelas fotos, as duas fileiras de pinos ficam a 10 furos (25,4 mm): do furo j da esquerda ao furo a da direita são 8 furos. Desenhei o pino esquerdo na coluna i e o direito na coluna b; se os seus caírem em outra coluna, use qualquer furo livre da mesma fileira.</li>
+      <li>O ESP32 desta placa é de 30 pinos (15 por lado). Os 2 botões (A no GPIO33, B no GPIO32) ficam no lado direito (junto de VIN e GND). O OLED fica no lado esquerdo (junto do 3V3).</li>
+      <li>Só o OLED usa 3V3. Os botões usam o pull-up interno (<code>Button::begin()</code> do fmk usa INPUT_PULLUP) e só precisam de GND. Por isso o trilho + não é usado.</li>
+      <li>Os dois GND do ESP são o mesmo ponto: cada trilho − recebe o GND do seu lado e não precisa de fio ligando um ao outro.</li>
+      <li>OLED: entra na vertical, 4 pinos na mesma coluna (cada pino numa fileira diferente). Gire o módulo 90° para GND ficar no topo, com VCC, SCL e SDA descendo (confira a serigrafia do módulo). O corpo fica pendurado para fora da breadboard, sobre o trilho. A tela fica de lado, só para este teste.</li>
+      <li>Botões: cada um atravessa o vão central. Ligue os fios só em pernas em diagonal, como no desenho. As outras duas pernas ficam sem fio.</li>
+      <li>Alguns trilhos de breadboard pequena são partidos no meio. Os fios de GND usam as linhas 2 a 27 do trilho: se um botão ou o OLED não responder, confira se o trilho é contínuo ou ligue as duas metades com um jumper.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const P = 16, Y0 = 120, ROWS = 30;
+const y = r => Y0 + (r - 1) * P;
+const OX = 110;
+const X = {
+  L: {'+':20,'-':36,a:64,b:80,c:96,d:112,e:128,f:160,g:176,h:192,i:208,j:224},
+  R: {a:352,b:368,c:384,d:400,e:416,f:448,g:464,h:480,i:496,j:512,'+':544,'-':560}
+};
+for (const b in X) for (const c in X[b]) X[b][c] += OX;
+const BOARD = {L:[8 + OX, 244 + OX], R:[336 + OX, 576 + OX]};
+const ESP_L = ['3V3','GND','D15','D2','D4','RX2 (GPIO16)','TX2 (GPIO17)','D5','D18','D19','D21 (SDA)','RX0','TX0','D22 (SCL)','D23'];
+const ESP_R = ['VIN','GND','D13','D12','D14','D27','D26','D25','D33','D32','D35','D34','VN','VP','EN'];
+const C = {gnd:'#222', v33:'#d62828', sda:'#1d6fe0', scl:'#e0a800', play:'#2b9348', next:'#0e9aa7', prev:'#7b3fe4', up:'#f26a1b', down:'#d6336c'};
+
+// [de, para, cor, passo, sinal]; ponto = [placa, coluna, linha]
+const W = [
+  [['L','f',2],['L','-',2],C.gnd,1,'GND do ESP (esq) para o trilho −'],
+  [['R','c',2],['R','-',2],C.gnd,1,'GND do ESP (dir) para o trilho −'],
+  [['L','b',23],['L','-',17],C.gnd,2,'OLED GND para o trilho −'],
+  [['L','f',1],['L','b',24],C.v33,2,'3V3 para OLED VCC'],
+  [['L','f',14],['L','b',25],C.scl,2,'GPIO22 para OLED SCL'],
+  [['L','f',11],['L','b',26],C.sda,2,'GPIO21 para OLED SDA'],
+  [['R','c',9],['R','c',16],C.next,3,'GPIO33 para botão A (perna e16)'],
+  [['R','h',18],['R','-',18],C.gnd,3,'botão A (perna f18) para GND'],
+  [['R','d',10],['R','d',19],C.play,3,'GPIO32 para botão B (perna e19)'],
+  [['R','h',21],['R','-',21],C.gnd,3,'botão B (perna f21) para GND']
+];
+// [placa, linha de cima, cor, nome]; pernas nas colunas e e f, 2 linhas de distância
+const BTN = [
+  ['R',16,C.next,'A'],
+  ['R',19,C.play,'B']
+];
+const STEPS = [
+  [1,'1 GND','Ligue o USB: o LED vermelho da placa acende. Os dois trilhos − recebem o GND do ESP. Se o seu trilho for partido no meio (comum em breadboard de 830 pontos), ligue as duas metades com um jumper antes de seguir.'],
+  [2,'2 OLED','OLED na coluna a, linhas 23 a 26 (GND, VCC, SCL, SDA de cima para baixo), módulo girado 90° com o corpo para fora da breadboard.'],
+  [3,'3 Botões A e B','Cada botão atravessa o vão central (colunas e e f, 2 linhas de distância). Os dois fios vão em pernas em diagonal, como na tabela (GPIO numa perna, GND na perna do outro lado e da outra linha). As 4 pernas ficam em fileiras separadas, também com o botão girado 180°.'],
+  [4,'4 LED','Fora desta etapa: sem resistor de 330 Ω, ligar o LED direto ao GPIO16 queima o LED ou o pino. O pino RX2 (GPIO16) fica sem uso.'],
+  [5,'5 Gravar','Rode pio run -d firmware -t upload e depois pio device monitor -d firmware. O OLED deve mostrar a tela e o nome da última ação decodificada (play, prev, next, vol-, vol+, playlist, wifi). Gestos e tempos em CONTROLES.md. A % de bateria na tela é lixo (GPIO35 solto) e o GPIO16 não tem LED.'],
+  [9,'Tudo','']
+];
+
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, a, parent) => { const n = document.createElementNS(NS, tag); for (const k in a) n.setAttribute(k, a[k]); (parent || svg).appendChild(n); return n; };
+const txt = (s, a, parent) => { const t = el('text', a, parent); t.textContent = s; return t; };
+const svg = document.getElementById('svg');
+const label = ([b, c, r]) => c === '-' || c === '+' ? `${b === 'L' ? 'Esq' : 'Dir'} trilho ${c === '-' ? '−' : '+'}, linha ${r}` : `${b === 'L' ? 'Esq' : 'Dir'} ${c}${r}`;
+
+function drawBoards() {
+  for (const b of ['L', 'R']) {
+    const [x0, x1] = BOARD[b];
+    el('rect', {x: x0, y: 104, width: x1 - x0, height: 14 + ROWS * P, rx: 8, fill: 'var(--board)', stroke: 'var(--line)'});
+    for (const c in X[b]) {
+      const rail = c === '+' || c === '-';
+      for (let r = 1; r <= ROWS; r++) el('circle', {cx: X[b][c], cy: y(r), r: 2.2, fill: 'var(--hole)'});
+      txt(rail ? (c === '-' ? '−' : '+') : c, {x: X[b][c], y: 114, 'text-anchor': 'middle', 'font-size': 10, fill: rail ? (c === '-' ? '#1d6fe0' : '#d62828') : '#777', 'font-weight': rail ? 700 : 400});
+    }
+    for (let r = 1; r <= ROWS; r++) if (r % 5 === 0 || r === 1) {
+      const xl = b === 'L' ? X.L.e + 16 : X.R.e + 16;
+      txt(r, {x: xl, y: y(r) + 3, 'text-anchor': 'middle', 'font-size': 8, fill: '#999'});
+    }
+  }
+}
+
+function drawEsp() {
+  const g = el('g', {});
+  el('rect', {x: 196 + OX, y: 64, width: 184, height: 336, rx: 8, fill: 'var(--esp)', opacity: .92}, g);
+  el('rect', {x: 258 + OX, y: 44, width: 60, height: 34, rx: 6, fill: '#9aa3b2'}, g);
+  txt('USB', {x: 288 + OX, y: 66, 'text-anchor': 'middle', 'font-size': 11, fill: '#14213d', 'font-weight': 700}, g);
+  txt('ESP32 DevKit (30 pinos)', {x: 288 + OX, y: 418, 'text-anchor': 'middle', 'font-size': 11, fill: '#5d6676'}, g);
+  ESP_L.forEach((n, i) => {
+    el('circle', {cx: X.L.i, cy: y(i + 1), r: 4, fill: '#c9a24a'}, g);
+    txt(n, {x: X.L.i + 9, y: y(i + 1) + 3, 'font-size': 9, fill: '#fff'}, g);
+  });
+  ESP_R.forEach((n, i) => {
+    el('circle', {cx: X.R.b, cy: y(i + 1), r: 4, fill: '#c9a24a'}, g);
+    txt(n, {x: X.R.b - 9, y: y(i + 1) + 3, 'text-anchor': 'end', 'font-size': 9, fill: '#fff'}, g);
+  });
+}
+
+function drawOled(g) {
+  const x = X.L.a, ytop = y(23);
+  el('rect', {x: x - 148, y: ytop - 56, width: 150, height: 130, rx: 6, fill: '#1b1b1b', stroke: '#555'}, g);
+  el('rect', {x: x - 128, y: ytop - 40, width: 96, height: 98, fill: '#0a2a4a', stroke: '#2a5a8a'}, g);
+  txt('OLED', {x: x - 80, y: ytop + 12, 'text-anchor': 'middle', 'font-size': 12, fill: '#9fc4ee'}, g);
+  ['GND', 'VCC', 'SCL', 'SDA'].forEach((n, i) => {
+    el('rect', {x: x - 4, y: ytop + i * P - 4, width: 8, height: 8, fill: '#c9a24a'}, g);
+    txt(n, {x: x - 10, y: ytop + i * P + 3, 'text-anchor': 'end', 'font-size': 9, fill: '#fff'}, g);
+  });
+}
+
+function drawButton(g, [b, r1, color, name]) {
+  const xa = X[b].e, xb = X[b].f, r2 = r1 + 2;
+  el('rect', {x: xa + 6, y: y(r1) + 4, width: xb - xa - 12, height: y(r2) - y(r1) - 8, rx: 4, fill: '#333', stroke: color, 'stroke-width': 2}, g);
+  el('circle', {cx: (xa + xb) / 2, cy: (y(r1) + y(r2)) / 2, r: 6, fill: color}, g);
+  for (const cx of [xa, xb]) for (const r of [r1, r2]) el('rect', {x: cx - 3, y: y(r) - 3, width: 6, height: 6, fill: '#c9a24a'}, g);
+  txt(name, {x: (xa + xb) / 2, y: y(r1) - 5, 'text-anchor': 'middle', 'font-size': 9, fill: '#333', 'font-weight': 700}, g);
+}
+
+function wirePath([b1, c1, r1], [b2, c2, r2], n) {
+  const x1 = X[b1][c1], x2 = X[b2][c2], y1 = y(r1), y2 = y(r2);
+  if (Math.abs(y1 - y2) < 4) {
+    const lift = 18 + Math.abs(x2 - x1) / 6;
+    return {d: `M${x1} ${y1} C${x1} ${y1 - lift} ${x2} ${y2 - lift} ${x2} ${y2}`, mx: (x1 + x2) / 2, my: y1 - lift * .75};
+  }
+  if (Math.abs(x1 - x2) < 4) {
+    const bulge = [-30, 30, -15, 15][n % 4];
+    return {d: `M${x1} ${y1} C${x1 + bulge} ${y1} ${x2 + bulge} ${y2} ${x2} ${y2}`, mx: x1 + bulge * .75, my: (y1 + y2) / 2};
+  }
+  const xm = (x1 + x2) / 2;
+  return {d: `M${x1} ${y1} C${xm} ${y1} ${xm} ${y2} ${x2} ${y2}`, mx: xm, my: (y1 + y2) / 2};
+}
+
+function render(step) {
+  document.querySelectorAll('.dyn').forEach(n => n.remove());
+  const g = el('g', {class: 'dyn'});
+  if (step >= 2) drawOled(g);
+  if (step >= 3) BTN.forEach(b => drawButton(g, b));
+  const tb = document.querySelector('#wtable tbody');
+  tb.innerHTML = '';
+  W.forEach(([from, to, color, st, desc], i) => {
+    if (st > step) return;
+    const {d, mx, my} = wirePath(from, to, i);
+    const cur = step === 9 || st === step;
+    el('path', {d, fill: 'none', stroke: color, 'stroke-width': cur ? 3 : 2, 'stroke-linecap': 'round', opacity: cur ? 1 : .35}, g);
+    for (const p of [from, to]) el('circle', {cx: X[p[0]][p[1]], cy: y(p[2]), r: 3.4, fill: color, stroke: '#fff', 'stroke-width': 1}, g);
+    el('circle', {cx: mx, cy: my, r: 7, fill: '#fff', stroke: color}, g);
+    txt(i + 1, {x: mx, y: my + 3, 'text-anchor': 'middle', 'font-size': 8.5, fill: '#111', 'font-weight': 700}, g);
+    if (cur) {
+      const tr = tb.insertRow();
+      tr.innerHTML = `<td>${i + 1}</td><td><span class="sw" style="background:${color}"></span></td><td>${label(from)}</td><td>${label(to)}</td><td>${desc}</td>`;
+    }
+  });
+  const s = STEPS.find(s => s[0] === step);
+  document.getElementById('stepnote').textContent = s[2] || 'Todos os passos montados.';
+  document.querySelectorAll('#steps button').forEach(b => b.setAttribute('aria-pressed', b.dataset.s == step));
+}
+
+drawBoards();
+drawEsp();
+const bar = document.getElementById('steps');
+STEPS.forEach(([n, name]) => {
+  const b = document.createElement('button');
+  b.textContent = name; b.dataset.s = n; b.onclick = () => render(n);
+  bar.appendChild(b);
+});
+render(9);
+</script>
+</body>
+</html>

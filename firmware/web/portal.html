@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>marmota mp3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f5f5f4;--sf:#fff;--bd:rgba(0,0,0,.09);--tx:#111;--mu:#666;--er:#b42318;--wa:#a15c07}
+html,body{background:var(--bg);color:var(--tx);font:14px/1.5 system-ui,-apple-system,sans-serif;accent-color:#111}
+body{padding:24px max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
+main,#boot,#end{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+[hidden]{display:none!important}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+h1{font-size:15px;font-weight:500;letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+h2{font-size:15px;font-weight:500}
+small,.mu{color:var(--mu);font-size:12px}
+#lang button{background:none;border:0;font:inherit;color:var(--mu);padding:4px;cursor:pointer}
+#lang button.on{color:var(--tx);text-decoration:underline}
+#st{font-size:12px;color:var(--mu);margin-top:-14px}
+#st.off{color:var(--er)}
+section{display:flex;flex-direction:column;gap:10px}
+.bar{position:relative;height:8px;background:rgba(0,0,0,.08);border-radius:8px;overflow:hidden}
+.bar i{position:absolute;top:0;bottom:0;left:0;width:0;background:var(--tx);transition:width .15s,left .15s}
+.bar i.pl{background:repeating-linear-gradient(90deg,currentColor 0 4px,transparent 4px 7px);opacity:.45}
+.bar.over i.pl{color:var(--er);opacity:1}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.btn,button.b{flex:1;min-height:44px;display:block;line-height:42px;text-align:center;border-radius:8px;min-width:0;
+  border:1px solid var(--tx);background:var(--tx);color:#fff;font:inherit;font-weight:500;cursor:pointer;padding:0 12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn.gh,.b.gh{background:transparent;color:var(--tx);border-color:rgba(0,0,0,.25)}
+button:disabled{opacity:.4;cursor:default}
+input[type=file]{display:none}
+input[type=text]{width:100%;min-height:40px;border:1px solid rgba(0,0,0,.2);border-radius:8px;padding:0 10px;font:inherit;background:var(--sf);color:var(--tx)}
+label.c{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--mu)}
+ul{list-style:none;display:flex;flex-direction:column}
+#q li{padding:8px 0;border-bottom:1px solid var(--bd);animation:in .15s ease-out}
+.r{display:flex;align-items:center;gap:8px;min-width:0}
+.n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.n>*{display:block;overflow:hidden;text-overflow:ellipsis}
+.ln{display:block;height:2px;margin-top:6px;background:rgba(0,0,0,.06);border-radius:2px;overflow:hidden}
+.ln i{display:block;height:100%;width:0;background:var(--tx);transition:width .15s}
+.ch{font-size:11px;font-weight:500;padding:1px 8px;border-radius:10px;background:rgba(0,0,0,.06);color:var(--mu);white-space:nowrap}
+.ch.check,.ch.send{color:var(--tx);animation:pu 1s ease-in-out infinite}
+.ch.ok{background:var(--tx);color:#fff}
+.ch.ok::before{content:"✓ ";display:inline-block;animation:ck .25s ease-out}
+.ch.err{background:#fde8e6;color:var(--er)}
+.ch.warn{background:#fdf0dc;color:var(--wa)}
+.note{font-size:12px;color:var(--wa)}
+.note.e,.h.e{color:var(--er)}
+.dst{display:flex;align-items:center;gap:10px;padding:10px 10px 10px 14px;border-radius:10px;background:var(--tx);color:#fff;animation:in .2s ease-out}
+.dst small{color:rgba(255,255,255,.65)}
+.dst b{font-size:16px;font-weight:600}
+.dst .b{flex:none;min-height:36px;line-height:34px;border-color:rgba(255,255,255,.4);color:#fff}
+.dst.no{background:#fdf0dc;color:var(--wa)}
+.dst.no small{color:var(--wa)}
+.dst.no .b{border-color:var(--wa);color:var(--wa)}
+.fl{animation:fl .5s ease-out}
+#send{flex:1 1 100%}
+label.btn{display:flex;align-items:center;justify-content:center}
+#ask .b{white-space:normal;line-height:1.3;padding:10px 12px}
+#ask{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--bd);border-radius:10px;background:var(--sf);animation:in .2s ease-out}
+.lh{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+#pll{display:flex;flex-direction:column;gap:6px}
+.cd{background:var(--sf);border:1px solid var(--bd);border-radius:10px;animation:in .15s ease-out;transition:border-color .15s}
+.cd.on{border-color:var(--tx)}
+.hd{display:flex;align-items:center;gap:8px;padding-right:8px;min-height:52px}
+.tg{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:none;border:0;font:inherit;color:inherit;text-align:left;padding:6px 0 6px 12px;cursor:pointer;min-height:52px}
+.tg::before{content:"›";color:var(--mu);transition:transform .15s}
+.op .tg::before{transform:rotate(90deg)}
+.tg .t{font-weight:500}
+.hd>input{flex:1;margin-left:12px}
+.ad{flex:none;min-height:34px;border-radius:17px;border:0;background:var(--tx);color:#fff;font:inherit;font-size:13px;font-weight:500;padding:0 14px;cursor:pointer;white-space:nowrap}
+.cd:not(.op) .bd{display:none}
+.bd{padding:0 12px;animation:in .15s ease-out}
+.bd li{display:flex;flex-wrap:wrap;gap:4px;align-items:center;padding:6px 0;border-top:1px solid var(--bd);animation:in .15s ease-out}
+.bd li>input{min-height:30px;flex:1}
+li .a{min-width:30px;min-height:32px;padding:4px}
+.a:disabled{opacity:.25}
+.pa{display:flex;gap:6px;justify-content:flex-end;padding-bottom:10px;padding-top:6px;border-top:1px solid var(--bd)}
+.a{background:none;border:0;font:inherit;font-size:12px;color:var(--mu);padding:4px 6px;cursor:pointer;border-radius:6px}
+.a.arm{background:var(--er);color:#fff}
+.pk{flex:1 0 100%;display:flex;flex-direction:column;gap:10px;padding:10px;margin:4px 0;border-radius:10px;background:var(--bg);animation:in .15s ease-out}
+.cs{display:flex;flex-wrap:wrap;gap:6px;max-height:212px;overflow-y:auto}
+.cp{max-width:100%;min-height:40px;display:flex;align-items:center;gap:6px;padding:0 14px;border-radius:20px;border:1px solid rgba(0,0,0,.2);background:var(--sf);color:var(--tx);font:inherit;cursor:pointer}
+.cp .t{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cp.on{background:var(--tx);color:#fff}
+.cp.on small{color:rgba(255,255,255,.65)}
+.nw{display:flex;flex-direction:column;gap:4px;animation:in .15s ease-out}
+.nw .row{flex-wrap:nowrap}
+.nw .b{flex:none}
+.h{font-size:12px;color:var(--mu);min-height:18px}
+.busy #lib button,.busy #dirBtn,.busy #dB{pointer-events:none;opacity:.4}
+footer{display:flex;flex-direction:column;gap:8px;text-align:center}
+footer a{color:var(--tx)}
+#boot{align-items:center;padding-top:30vh;flex-direction:row;justify-content:center;gap:6px}
+#boot i{width:8px;height:8px;border-radius:50%;background:var(--tx);animation:pu 1s infinite}
+#end{padding-top:25vh;text-align:center}
+@keyframes in{from{opacity:0;transform:translateY(4px)}}
+@keyframes pu{50%{opacity:.35}}
+@keyframes ck{from{transform:scale(0)}60%{transform:scale(1.4)}}
+@keyframes fl{from{transform:scale(1.03)}}
+@media (prefers-reduced-motion:reduce){*,*::before{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="boot"><i></i></div>
+<p id="bootOff" class="mu" hidden style="text-align:center"></p>
+<main id="app" hidden>
+  <header>
+    <h1 id="name"></h1>
+    <nav id="lang"><button data-l="pt">pt</button><span class="mu">|</span><button data-l="en">en</button></nav>
+  </header>
+  <p id="st"></p>
+  <section>
+    <div class="bar" id="sp"><i id="spU"></i><i id="spP" class="pl"></i></div>
+    <small id="spT"></small>
+  </section>
+  <section id="qs" hidden>
+    <div id="dst" class="dst"><div class="n"><small data-t="dest"></small><b id="dN"></b><small id="dS"></small></div><button class="b gh" id="dB"></button></div>
+    <div id="pkq"></div>
+    <div id="ask" hidden><small id="askT"></small><button class="b" id="askE"></button><button class="b gh" id="askN"></button></div>
+    <ul id="q"></ul>
+    <label class="c"><input type="checkbox" id="num" checked><span data-t="num"></span></label>
+    <p id="qn" class="note" hidden></p>
+    <div class="bar"><i id="tot"></i></div>
+    <div class="row"><button class="b" id="send"></button><button class="b gh" id="cancel"></button></div>
+  </section>
+  <section id="lib">
+    <div class="lh"><h2 data-t="lib"></h2><small id="libC"></small></div>
+    <div class="row">
+      <button class="b gh" id="nwB" data-t="newPl"></button>
+      <label class="btn gh" id="dirBtn"><input type="file" id="fDir" webkitdirectory multiple><span data-t="folder"></span></label>
+    </div>
+    <input type="file" id="fFiles" multiple accept=".mp3,audio/mpeg">
+    <div id="nwb"></div>
+    <input type="text" id="flt" data-tp="find" autocomplete="off" hidden>
+    <p id="libN" class="note" hidden></p>
+    <div id="pll"></div>
+  </section>
+  <footer>
+    <button class="b gh" id="done" data-t="done"></button>
+    <small data-t="keep"></small>
+    <small><span data-t="open"></span> <a href="http://192.168.4.1" target="_blank">http://192.168.4.1</a></small>
+  </footer>
+</main>
+<div id="end" hidden><p data-t="bye"></p></div>
+<script>
+'use strict';
+const T = {
+  pt: {
+    folder: 'enviar pasta', newPl: '+ nova playlist', add: '+ adicionar músicas', create: 'escolher músicas', plPh: 'nome da playlist',
+    num: 'manter ordem (01, 02…)', find: 'buscar playlist', dest: 'destino', exist: 'existente · $1 faixas', fresh: 'nova playlist',
+    swap: 'trocar', fc: 'buscar ou criar', move: 'mover', nothing: 'nada a enviar', pick: 'escolher', choose: 'escolha uma playlist', sendTo: 'enviar $1 músicas para $2', sendTo1: 'enviar 1 música para $2',
+    askT: 'a pasta "$1" já existe na biblioteca', askE: 'adicionar à existente "$1"', askN: 'criar nova "$1"',
+    n_free: 'nova playlist "$1"', n_dup: '"$1" já existe', n_bad: 'sem / \\ : * ? " < > |', n_long: 'máximo de $2 caracteres', n_full: 'limite de $3 playlists',
+    cancel: 'cancelar', clear: 'limpar', stop: 'parar', lib: 'biblioteca', count: '$1 de $2 playlists', none: 'biblioteca vazia. crie uma playlist ou envie uma pasta.',
+    done: 'concluir', keep: 'mantenha a tela ligada enquanto envia', open: 'o seletor não abriu? abra no navegador:',
+    ready: 'pronto', sending: 'enviando $1 de $2', off: 'sem conexão · tentando de novo',
+    fin: 'concluído · $1 enviadas, $2 puladas, $3 com erro',
+    space: '$1 de $2 usados · $3 livres', spaceQ: ' · fila $1', noFit: ' · não cabe, faltam $1',
+    wait: 'esperando', check: 'checando', ok: 'ok', skip: 'pulado', tracks: '$1 faixas', track1: '1 faixa',
+    ren: 'renomear', del: 'apagar', sure: 'apagar?', up: 'subir', dn: 'descer', mv: 'mover para…', loose: 'soltos', more: '$1+ arquivos',
+    ignored: '$1 ignorados (não são .mp3)', rate: '$1 com taxa diferente de 44,1 kHz: pode tocar errado',
+    plFull: 'limite de $1 playlists', trFull: 'limite de $1 faixas',
+    bye: 'pronto. o aparelho saiu do modo wi-fi, pode fechar esta página.',
+    e_num: 'sem número "NN - " nos dois nomes', e_name: 'nome inválido', e_space: 'sem espaço', e_exists: 'já existe', e_limit: 'limite', e_notmp3: 'não é mp3',
+    e_io: 'erro de gravação', e_big: 'grande demais', e_net: 'sem conexão'
+  },
+  en: {
+    folder: 'send folder', newPl: '+ new playlist', add: '+ add music', create: 'choose music', plPh: 'playlist name',
+    num: 'keep order (01, 02…)', find: 'find playlist', dest: 'destination', exist: 'existing · $1 tracks', fresh: 'new playlist',
+    swap: 'change', fc: 'find or create', move: 'move', nothing: 'nothing to send', pick: 'choose', choose: 'choose a playlist', sendTo: 'send $1 songs to $2', sendTo1: 'send 1 song to $2',
+    askT: 'folder "$1" is already in the library', askE: 'add to existing "$1"', askN: 'create new "$1"',
+    n_free: 'new playlist "$1"', n_dup: '"$1" already exists', n_bad: 'no / \\ : * ? " < > |', n_long: 'at most $2 characters', n_full: 'limit of $3 playlists',
+    cancel: 'cancel', clear: 'clear', stop: 'stop', lib: 'library', count: '$1 of $2 playlists', none: 'empty library. create a playlist or send a folder.',
+    done: 'finish', keep: 'keep the screen on while sending', open: 'picker did not open? open in the browser:',
+    ready: 'ready', sending: 'sending $1 of $2', off: 'no connection · retrying',
+    fin: 'done · $1 sent, $2 skipped, $3 failed',
+    space: '$1 of $2 used · $3 free', spaceQ: ' · queue $1', noFit: ' · does not fit, $1 short',
+    wait: 'waiting', check: 'checking', ok: 'ok', skip: 'skipped', tracks: '$1 tracks', track1: '1 track',
+    ren: 'rename', del: 'delete', sure: 'delete?', up: 'up', dn: 'down', mv: 'move to…', loose: 'loose', more: '$1+ files',
+    ignored: '$1 ignored (not .mp3)', rate: '$1 not at 44.1 kHz: may play wrong',
+    plFull: 'limit of $1 playlists', trFull: 'limit of $1 tracks',
+    bye: 'done. the device left wi-fi mode, you can close this page.',
+    e_num: 'both names need a "NN - " number', e_name: 'bad name', e_space: 'no space', e_exists: 'exists', e_limit: 'limit', e_notmp3: 'not mp3',
+    e_io: 'write error', e_big: 'too big', e_net: 'no connection'
+  }
+};
+
+const $ = id => document.getElementById(id);
+const all = s => document.querySelectorAll(s);
+const mk = (tag, html) => Object.assign(document.createElement(tag), html ? { innerHTML: html } : {});
+const enc = new TextEncoder();
+const blen = s => enc.encode(s).length;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const q = o => Object.keys(o).map(k => k + '=' + encodeURIComponent(o[k])).join('&');
+// D: playlist de destino da fila ('' = nenhuma); want: destino escolhido antes do seletor de arquivos abrir.
+let S = null, LS = [], LM = 0, L = 'pt', Q = [], B = null, run = false, xhr = null, stat = ['ready', []], ignored = 0;
+let D = '', want = null, ASK = null;
+const cache = {};
+
+function t(k, ...a) {
+  return (T[L][k] || k).replace(/\$(\d)/g, (m, i) => a[i - 1]);
+}
+
+const tr = c => t(c == 1 ? 'track1' : 'tracks', c);
+
+function fmt(b) {
+  const s = b < 1e6 ? Math.round(b / 1024) + ' kb' : (b / 1048576).toFixed(1) + ' mb';
+  return L == 'pt' ? s.replace('.', ',') : s;
+}
+
+function pickLang() {
+  let v = null;
+  try { v = localStorage.getItem('lang'); } catch (e) {}
+  return /^pt/i.test(v || (S && S.lang) || navigator.language || '') ? 'pt' : 'en';
+}
+
+function setLang(l) {
+  L = l;
+  document.documentElement.lang = l == 'pt' ? 'pt-BR' : 'en';
+  all('[data-t]').forEach(e => e.textContent = t(e.dataset.t));
+  all('[data-tp]').forEach(e => e.placeholder = t(e.dataset.tp));
+  all('#lang button').forEach(b => b.classList.toggle('on', b.dataset.l == l));
+  $('pkq').textContent = $('nwb').textContent = '';
+  draw();
+  drawLib();
+}
+
+async function api(path, post) {
+  const r = await fetch(path, post ? { method: 'POST', headers: { 'X-Mrm': '1', 'X-Q': path.split('?')[1] }, cache: 'no-store' } : { cache: 'no-store' });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || j.e) throw { code: j.e || 'io' };
+  return j;
+}
+
+async function loose() {
+  try { const j = await api('/api/loose'); LS = j.t; LM = j.more; } catch (e) {}
+}
+
+async function waitState() {
+  for (;;) {
+    try { S = await api('/api/state'); return; } catch (e) {}
+    setStat('off');
+    await sleep(2000);
+  }
+}
+
+// Mesmas regras do PathRules.h, em bytes UTF-8 como o strlen do aparelho.
+function clean(s, max) {
+  s = s.normalize('NFC').replace(/[\x00-\x1f\x7f\/\\:*?"<>|]/g, ' ').replace(/\s+/g, ' ').replace(/^[ .]+|[ .]+$/g, '');
+  while (blen(s) > max) s = Array.from(s).slice(0, -1).join('').replace(/[ .]+$/, '');
+  return s;
+}
+
+// Nome exato primeiro; senao sem caixa, porque no FAT do SD "Rock" e "rock" sao a mesma pasta.
+const find = p => S.pl.find(x => x.n == p) || S.pl.find(x => x.n.toLowerCase() == p.toLowerCase());
+
+// Nome digitado para playlist nova: free, dup (ja existe), bad, long ou full.
+function chk(v) {
+  const p = clean(v, 999);
+  if (!v.trim()) return { k: '' };
+  if (!p || /[\x00-\x1f\x7f\/\\:*?"<>|]/.test(v)) return { k: 'bad' };
+  if (blen(p) > S.lim.plLen) return { k: 'long' };
+  const ex = find(p);
+  if (ex) return { k: 'dup', p: ex.n };
+  return { k: S.pl.length >= S.lim.pl ? 'full' : 'free', p };
+}
+
+// Primeiro "nome N" livre, cortando o nome para caber o sufixo.
+function uniq(n) {
+  for (let j = 2; ; j++) {
+    const s = clean(n, S.lim.plLen - blen(' ' + j)) + ' ' + j;
+    if (!find(s)) return s;
+  }
+}
+
+const core = n => n.replace(/\.mp3$/i, '').replace(/^\d+ - /, '');
+
+// Sniff igual ao do aparelho: pula ID3 (syncsafe) e exige cabecalho MPEG Layer III, conferindo o
+// frame seguinte quando cabe no bloco lido.
+const BR = [[0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320], [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160]];
+
+function frame(b, i) {
+  if (b[i] != 0xff || (b[i + 1] & 0xe0) != 0xe0) return 0;
+  const ver = (b[i + 1] >> 3) & 3, br = b[i + 2] >> 4, si = (b[i + 2] >> 2) & 3;
+  if (ver == 1 || ((b[i + 1] >> 1) & 3) != 1 || br == 0 || br == 15 || si == 3) return 0;
+  const sr = [44100, 48000, 32000][si] / (ver == 3 ? 1 : ver == 2 ? 2 : 4);
+  const len = Math.floor((ver == 3 ? 144 : 72) * BR[ver == 3 ? 0 : 1][br] * 1000 / sr) + ((b[i + 2] >> 1) & 1);
+  return { sr, len };
+}
+
+async function sniff(f) {
+  let off = 0;
+  for (;;) {
+    const b = new Uint8Array(await f.slice(off, off + 65536).arrayBuffer());
+    if (b.length < 10) return 0;
+    if (b[0] == 0x49 && b[1] == 0x44 && b[2] == 0x33) {
+      off += 10 + (b[6] << 21 | b[7] << 14 | b[8] << 7 | b[9]) + (b[5] & 0x10 ? 10 : 0);
+      continue;
+    }
+    for (let i = 0; i + 4 <= b.length; i++) {
+      const h = frame(b, i);
+      if (!h) continue;
+      const j = i + h.len;
+      if (j + 4 > b.length || frame(b, j)) return h.sr;
+    }
+    return 0;
+  }
+}
+
+async function tracks(p, fresh) {
+  if (!S.pl.some(x => x.n == p)) return [];
+  if (fresh || !cache[p]) cache[p] = (await api('/api/tracks?' + q({ p }))).t;
+  return cache[p];
+}
+
+// Fila nova a cada escolha depois de um envio terminado: o que ja foi resolvido sai.
+async function add(list) {
+  if (!run) {
+    Q = Q.filter(x => x.st == 'wait' || x.st == 'check' || (x.el.remove(), 0));
+    if (!Q.length) ignored = 0;
+  }
+  const fs = Array.from(list).sort((a, b) =>
+    (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name, undefined, { numeric: true }));
+  for (const f of fs) {
+    if (!/\.mp3$/i.test(f.name)) { ignored++; continue; }
+    const it = { f, size: f.size, raw: clean(f.name.replace(/\.mp3$/i, ''), 200) || 'faixa', st: 'check', pct: 0 };
+    it.el = mk('li', '<div class="r"><span class="n"></span><b class="ch"></b></div><i class="ln"><i></i></i>');
+    $('q').append(it.el);
+    Q.push(it);
+  }
+  draw();
+  drawLib();
+  $('qs').scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth' });
+  for (const it of Q.filter(x => x.st == 'check')) {
+    if (it.size > S.lim.file) { fail(it, 'big'); continue; }
+    it.sr = await sniff(it.f).catch(() => 0);
+    if (it.sr) it.st = 'wait'; else fail(it, 'notmp3');
+    drawItem(it);
+  }
+  await plan(true);
+}
+
+// A pasta vira playlist: nome livre vira destino novo; nome que ja existe pergunta (padrao: a existente).
+function folder(fs) {
+  const f = Array.from(fs).find(x => x.webkitRelativePath), n = f ? clean(f.webkitRelativePath.split('/')[0], S.lim.plLen) : '';
+  const ex = n && find(n);
+  ASK = ex ? { n, ex: ex.n, nw: uniq(ex.n) } : null;
+  newDest(ex ? ex.n : n && S.pl.length < S.lim.pl ? n : '');
+  add(fs);
+}
+
+// Uma fila, um destino: escolher outro destino por cartao, pasta ou playlist nova descarta o que esperava.
+function newDest(p) {
+  if (p != D) {
+    Q = Q.filter(x => x.st == 'send' || (x.el.remove(), 0));
+    ignored = 0;
+  }
+  setDest(p);
+}
+
+function setDest(p) {
+  D = p;
+  $('pkq').textContent = '';
+  $('dst').classList.remove('fl');
+  void $('dst').offsetWidth;
+  $('dst').classList.add('fl');
+  draw();
+  drawLib();
+  plan(true);
+}
+
+function fail(it, code) {
+  it.st = 'err';
+  it.e = code;
+  drawItem(it);
+}
+
+// Da o nome final a quem espera: limpa, numera depois do maior numero existente, pula quem ja esta
+// na playlist (mesmo nome sem numero e mesmo tamanho) e desvia colisao para "nome 2.mp3".
+async function plan(fresh) {
+  const p = D, num = $('num').checked;
+  let ex = [];
+  try { ex = p ? await tracks(p, fresh) : []; } catch (e) {}
+  const names = new Set(ex.map(x => x.n)), same = new Map(ex.map(x => [core(x.n) + '|' + x.b, x.n]));
+  let k = 0;
+  ex.forEach(x => { const m = /^(\d+) - /.exec(x.n); if (m) k = Math.max(k, +m[1]); });
+  Q.forEach(x => { if (x.st == 'ok' || x.st == 'send') names.add(x.name); });
+  let count = ex.length;
+  for (const it of Q) {
+    if (it.st != 'wait' && it.st != 'skip' && it.e != 'limit') continue;
+    const c = num ? it.raw.replace(/^\d{1,3}(\s*[-._)]\s*|\s+)(?=\S)/, '') : it.raw;
+    const hit = same.get(core(c + '.mp3') + '|' + it.size);
+    if (hit) { it.st = 'skip'; it.name = hit; drawItem(it); continue; }
+    it.st = 'wait';
+    if (++count > S.lim.tr) { fail(it, 'limit'); continue; }
+    const pre = num ? String(++k).padStart(2, '0') + ' - ' : '';
+    const room = S.lim.trLen - 4 - blen(pre);
+    let n = pre + (clean(c, room) || 'faixa') + '.mp3';
+    for (let j = 2; names.has(n); j++) n = pre + (clean(c, room - blen(' ' + j)) || 'faixa') + ' ' + j + '.mp3';
+    names.add(n);
+    it.name = n;
+    drawItem(it);
+  }
+  draw();
+}
+
+function upload(it, p, meta) {
+  return new Promise(res => {
+    const x = xhr = new XMLHttpRequest();
+    const qs = q(Object.assign({ p, n: it.name }, meta));
+    x.open('POST', '/api/upload?' + qs);
+    x.setRequestHeader('X-Q', qs);
+    x.setRequestHeader('Content-Type', 'application/octet-stream');
+    x.setRequestHeader('X-Mrm', '1');
+    x.upload.onprogress = e => { it.pct = e.loaded / it.size; drawItem(it); drawTotal(); };
+    x.onload = () => {
+      let j = {};
+      try { j = JSON.parse(x.responseText); } catch (e) {}
+      res(x.status == 200 && j.ok ? j : { e: j.e || 'io' });
+    };
+    x.onerror = x.ontimeout = () => res({ e: 'net' });
+    x.onabort = () => res({ e: 'cancel' });
+    x.send(it.f);
+  });
+}
+
+async function send() {
+  const p = D;
+  if (!p) return;
+  if (!find(p) && S.pl.length >= S.lim.pl) return note('qn', t('plFull', S.lim.pl), 1);
+  ASK = null;
+  await plan(true);
+  const batch = Q.filter(x => x.st == 'wait');
+  if (!batch.length) return;
+  B = { batch, tb: batch.reduce((s, x) => s + x.size, 0) };
+  run = true;
+  document.body.classList.add('busy');
+  setStat('send');
+  while (run) {
+    const i = batch.findIndex(x => x.st == 'wait');
+    if (i < 0) break;
+    const it = batch[i], ts = batch.reduce((s, x) => s + (x.st == 'wait' || x == it ? 0 : x.size), 0);
+    it.st = 'send';
+    it.pct = 0;
+    drawItem(it);
+    setStat('send');
+    const r = await upload(it, p, { i: i + 1, of: batch.length, tb: B.tb, ts });
+    if (r.ok) {
+      it.st = 'ok';
+      S.free = r.free;
+      const pl = find(p) || (S.pl.push({ n: p, c: 0, b: 0 }), find(p));
+      pl.c++;
+      pl.b += it.size;
+      (cache[p] = cache[p] || []).push({ n: it.name, b: it.size });
+    } else if (r.e == 'net') {
+      await recover(it, p);
+    } else if (r.e == 'cancel') {
+      it.st = 'wait';
+    } else {
+      fail(it, r.e);
+      if (r.e == 'space') stop();
+    }
+    drawItem(it);
+    draw();
+  }
+  finish();
+}
+
+// Conexao caiu no meio: o aparelho pode ter recusado (fecha o socket) ou o celular dormiu.
+// Volta quando /api/state responde e decide pelo que ficou gravado e por state.last.
+async function recover(it, p) {
+  it.st = 'wait';
+  drawItem(it);
+  await waitState();
+  if (!run) return;
+  setStat('send');
+  const ex = await tracks(p, true).catch(() => []);
+  const got = ex.find(x => x.n == it.name);
+  if (got && got.b == it.size) it.st = 'ok';
+  else if (['name', 'space', 'notmp3', 'limit', 'exists'].includes(S.last)) {
+    fail(it, S.last);
+    if (S.last == 'space') stop();
+  } else if ((it.tries = (it.tries || 0) + 1) > 3) fail(it, 'net');
+  await plan();
+}
+
+function stop() {
+  const r = run;
+  run = false;
+  if (xhr) xhr.abort();
+  if (r) setStat('ready');
+}
+
+async function finish() {
+  try { S = await api('/api/state'); } catch (e) {}
+  document.body.classList.remove('busy');
+  run = false;
+  xhr = null;
+  const c = s => Q.filter(x => x.st == s).length;
+  if (Q.length && !c('wait')) setStat('fin', c('ok'), c('skip'), c('err'));
+  else setStat('ready');
+  draw();
+  drawLib();
+}
+
+function cancel() {
+  if (run) return stop();
+  Q = [];
+  B = null;
+  D = '';
+  ASK = null;
+  $('q').textContent = $('pkq').textContent = '';
+  ignored = 0;
+  setStat('ready');
+  draw();
+  drawLib();
+}
+
+function setStat(s, ...a) {
+  stat = [s, a];
+  const e = $('st');
+  e.className = s;
+  if (s == 'send' && B) {
+    const done = B.batch.filter(x => x.st != 'wait' && x.st != 'send').length;
+    a = [done + 1, B.batch.length];
+  }
+  e.textContent = t(s == 'send' ? 'sending' : s, ...a);
+}
+
+function note(id, txt, err) {
+  const e = $(id);
+  e.hidden = !txt;
+  e.textContent = txt || '';
+  e.classList.toggle('e', !!err);
+}
+
+function drawItem(it) {
+  const ch = it.el.querySelector('.ch'), warn = it.st == 'wait' && it.sr && it.sr != 44100;
+  it.el.querySelector('.n').textContent = it.name || it.raw + '.mp3';
+  ch.className = 'ch ' + (warn ? 'warn' : it.st);
+  ch.textContent = warn ? it.sr / 1000 + ' kHz' : it.st == 'send' ? Math.floor(it.pct * 100) + '%' :
+    it.st == 'err' ? t('e_' + it.e) : t(it.st);
+  it.el.querySelector('.ln i').style.width = (it.st == 'ok' ? 100 : it.st == 'send' ? it.pct * 100 : 0) + '%';
+}
+
+function drawTotal() {
+  if (!B) return;
+  let sent = 0;
+  B.batch.forEach(x => sent += x.st == 'send' ? x.pct * x.size : x.st == 'wait' ? 0 : x.size);
+  $('tot').style.width = (sent / B.tb * 100) + '%';
+}
+
+// Linha de destino sempre visivel na fila; sem destino o envio fica desligado.
+function drawDest() {
+  const ex = D && find(D), n = Q.filter(x => x.st == 'wait').length;
+  $('dst').classList.toggle('no', !D);
+  $('dN').textContent = D || t('choose');
+  $('dS').textContent = !D ? (S.pl.length >= S.lim.pl ? t('plFull', S.lim.pl) : '') : ex ? t('exist', ex.c) : t('fresh');
+  $('dB').textContent = t(D ? 'swap' : 'pick');
+  $('dB').disabled = run;
+  $('send').textContent = !D ? t('choose') : n ? t(n == 1 ? 'sendTo1' : 'sendTo', n, D) : t(Q.some(x => x.st == 'check') ? 'check' : 'nothing');
+  $('send').disabled = run || !D || !n || Q.some(x => x.st == 'check');
+  $('ask').hidden = !ASK || run;
+  if (!ASK) return;
+  $('askT').textContent = t('askT', ASK.n);
+  $('askE').textContent = t('askE', ASK.ex);
+  $('askN').textContent = t('askN', ASK.nw);
+  $('askE').className = 'b' + (D == ASK.ex ? '' : ' gh');
+  $('askN').className = 'b' + (D == ASK.nw ? '' : ' gh');
+  $('askN').disabled = S.pl.length >= S.lim.pl;
+}
+
+function draw() {
+  if (!S) return;
+  $('name').textContent = S.name;
+  document.title = S.name;
+  const used = S.total - S.free, room = S.total - S.reserve;
+  const plan = Q.reduce((s, x) => s + (x.st == 'wait' || x.st == 'check' || x.st == 'send' ? x.size : 0), 0);
+  $('spU').style.width = used / S.total * 100 + '%';
+  $('spP').style.left = used / S.total * 100 + '%';
+  $('spP').style.width = Math.min(plan, S.total - used) / S.total * 100 + '%';
+  $('sp').classList.toggle('over', used + plan > room);
+  $('spT').textContent = t('space', fmt(used), fmt(room), fmt(Math.max(0, room - used))) + (plan ? t('spaceQ', fmt(plan)) : '') +
+    (used + plan > room ? t('noFit', fmt(used + plan - room)) : '');
+  $('qs').hidden = !Q.length;
+  Q.forEach(drawItem);
+  const odd = Q.filter(x => x.sr && x.sr != 44100 && x.st != 'err').length;
+  note('qn', [ignored ? t('ignored', ignored) : '', odd ? t('rate', odd) : ''].filter(Boolean).join(' · '));
+  $('num').disabled = run;
+  $('cancel').textContent = t(run ? 'stop' : Q.some(x => x.st == 'wait') ? 'cancel' : 'clear');
+  drawDest();
+  drawTotal();
+  setStat(...[stat[0]].concat(stat[1]));
+}
+
+const IC = { up: '↑', dn: '↓', mv: '→', ren: '✎', del: '✕' };
+const btn = a => '<button class="a" data-a="' + a + '" title="' + t(a) + '" aria-label="' + t(a) + '">' + IC[a] + '</button>';
+
+function track(x, acts) {
+  const li = mk('li', '<span class="n"><span class="t"></span><small></small></span>' + acts.map(btn).join(''));
+  li.dataset.n = x.n;
+  li.querySelector('.t').textContent = x.n;
+  return li;
+}
+
+// Campo de nome de playlist nova com validacao ao vivo; onIn recebe o texto para filtrar chips.
+function newBox(ok, onIn) {
+  const w = mk('div', '<div class="row"><input type="text" autocomplete="off"><button class="b"></button></div><small class="h"></small>');
+  w.className = 'nw';
+  const i = w.querySelector('input'), b = w.querySelector('button'), h = w.lastChild;
+  i.placeholder = t('plPh');
+  b.textContent = t('create');
+  const upd = () => {
+    const r = chk(i.value);
+    h.textContent = r.k ? t('n_' + r.k, r.p, S.lim.plLen, S.lim.pl) : '';
+    h.className = 'h' + (r.k == 'free' ? '' : ' e');
+    b.disabled = r.k != 'free';
+    if (onIn) onIn(i.value.trim().toLowerCase());
+    return r;
+  };
+  const go = () => { const r = upd(); if (r.k == 'free') ok(r.p); };
+  i.oninput = upd;
+  i.onkeydown = e => e.key == 'Enter' && go();
+  b.onclick = go;
+  upd();
+  if (!onIn) setTimeout(() => i.focus());
+  return w;
+}
+
+// Seletor de destino: playlists como chips grandes e "+ nova"; skip e a origem de um mover.
+function picker(host, skip, done) {
+  const old = host.querySelector('.pk');
+  if (old) return old.remove();
+  const k = mk('div', '<div class="cs"></div>'), cs = k.firstChild;
+  k.className = 'pk';
+  S.pl.filter(x => x.n != skip).forEach(x => {
+    const c = mk('button', '<span class="t"></span><small></small>');
+    c.className = 'cp' + (x.n == D && skip == null ? ' on' : '');
+    c.firstChild.textContent = x.n;
+    c.lastChild.textContent = x.c;
+    c.onclick = () => done(x.n);
+    cs.append(c);
+  });
+  k.append(newBox(done, v => cs.childNodes.forEach(c => c.hidden = !c.firstChild.textContent.toLowerCase().includes(v))));
+  k.querySelector('.b').textContent = t(skip == null ? 'pick' : 'move');
+  k.querySelector('input').placeholder = t('fc');
+  k.onclick = e => e.stopPropagation();
+  host.append(k);
+}
+
+function card(p, title, sub, open) {
+  const d = mk('div', '<div class="hd"><button class="tg"><span class="n"><span class="t"></span><small></small></span></button>' +
+    (p ? '<button class="ad" data-a="add">' + t('add') + '</button>' : '') + '</div><div class="bd"><ul></ul>' +
+    (p ? '<div class="pa"><button class="a" data-a="ren">' + t('ren') + '</button><button class="a" data-a="del">' + t('del') + '</button></div>' : '') + '</div>');
+  d.className = 'cd' + (p && p == D && Q.length ? ' on' : '');
+  d.dataset.p = p;
+  d.querySelector('.t').textContent = title;
+  d.querySelector('small').textContent = sub;
+  if (open.has(p)) toggle(d);
+  return d;
+}
+
+function drawLib() {
+  if (!S) return;
+  const box = $('pll'), open = new Set([...box.querySelectorAll('.op')].map(d => d.dataset.p)), f = $('flt').value.trim().toLowerCase();
+  box.textContent = '';
+  $('libC').textContent = t('count', S.pl.length, S.lim.pl);
+  $('flt').hidden = S.pl.length < 7;
+  $('nwB').disabled = S.pl.length >= S.lim.pl;
+  if (!S.pl.length && !LS.length) box.append(mk('small', t('none')));
+  if (LS.length) box.append(card('', t('loose'), LM ? t('more', LS.length) : tr(LS.length), open));
+  S.pl.filter(x => !f || x.n.toLowerCase().includes(f)).forEach(x => box.append(card(x.n, x.n, tr(x.c) + ' · ' + fmt(x.b), open)));
+}
+
+async function toggle(d) {
+  if (!d.classList.toggle('op')) return;
+  const p = d.dataset.p, ul = d.querySelector('ul');
+  if (!p) {
+    ul.textContent = '';
+    for (const x of LS) {
+      const li = track(x, ['del']);
+      li.dataset.s = x.s;
+      li.querySelector('small').textContent = fmt(x.b) + ' · ' + (x.s == 'root' ? '/' : '/music');
+      const m = mk('button', t('mv'));
+      m.className = 'a';
+      m.dataset.a = 'mv';
+      li.lastChild.before(m);
+      ul.append(li);
+    }
+    return;
+  }
+  let ts = [];
+  try { ts = await tracks(p, true); } catch (e) { return note('libN', t('e_net'), 1); }
+  ul.textContent = '';
+  ts.forEach((x, i) => {
+    const li = track(x, ['up', 'dn', 'mv', 'ren', 'del']);
+    li.querySelector('small').textContent = fmt(x.b);
+    li.querySelector('[data-a=up]').disabled = !i;
+    li.querySelector('[data-a=dn]').disabled = i == ts.length - 1;
+    ul.append(li);
+  });
+}
+
+function move(p, li, to) {
+  const ex = find(to);
+  if (ex && ex.c >= S.lim.tr) return note('libN', t('trFull', S.lim.tr), 1);
+  const o = { p, n: li.dataset.n, to };
+  if (li.dataset.s) o.src = li.dataset.s;
+  act('/api/move?' + q(o));
+}
+
+// Apagar pede segundo toque em ate 3 s.
+function arm(b, fn) {
+  if (b.classList.contains('arm')) { clearTimeout(b.tm); return fn(); }
+  const txt = b.textContent;
+  b.classList.add('arm');
+  b.textContent = t('sure');
+  b.tm = setTimeout(() => { b.classList.remove('arm'); b.textContent = txt; }, 3000);
+}
+
+async function act(path) {
+  let ok = true;
+  note('libN');
+  try {
+    const r = await api(path, true);
+    if (r.free != null) S.free = r.free;
+  } catch (e) {
+    ok = false;
+    note('libN', t('e_' + (e.code || 'net')), 1);
+  }
+  Object.keys(cache).forEach(k => delete cache[k]);
+  try { S = await api('/api/state'); } catch (e) {}
+  await loose();
+  draw();
+  drawLib();
+  plan();
+  return ok;
+}
+
+function rename(el, p, n) {
+  const track = n != null, max = track ? S.lim.trLen - 4 : S.lim.plLen, old = track ? n.replace(/\.mp3$/i, '') : p;
+  const i = mk('input');
+  i.type = 'text';
+  i.value = old;
+  el.replaceWith(i);
+  i.focus();
+  let over = false;
+  const end = async ok => {
+    if (over) return;
+    over = true;
+    const v = clean(i.value, max);
+    if (!ok || !v || v == old) return drawLib();
+    if (await act('/api/rename?' + q(track ? { p, n, to: v + '.mp3' } : { p, to: v })) && !track && D == p) setDest(v);
+  };
+  i.onkeydown = e => { if (e.key == 'Enter') end(1); if (e.key == 'Escape') end(0); };
+  i.onblur = () => end(1);
+}
+
+$('pll').onclick = e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  const d = b.closest('.cd'), p = d.dataset.p, li = b.closest('li'), n = li ? li.dataset.n : null, a = b.dataset.a;
+  if (b.classList.contains('tg')) toggle(d);
+  else if (a == 'add') { want = p; $('fFiles').click(); }
+  else if (a == 'del') {
+    const o = n ? { p, n } : { p };
+    if (li && li.dataset.s) o.src = li.dataset.s;
+    arm(b, () => act('/api/delete?' + q(o)));
+  } else if (a == 'up' || a == 'dn') {
+    const o = a == 'up' ? li.previousElementSibling : li.nextElementSibling;
+    act('/api/swap?' + q(a == 'up' ? { p, a: o.dataset.n, b: n } : { p, a: n, b: o.dataset.n }));
+  } else if (a == 'mv') picker(li, p, to => move(p, li, to));
+  else rename(li ? li.querySelector('.n') : d.querySelector('.tg'), p, n);
+};
+
+$('fFiles').onchange = e => {
+  if (want != null) { ASK = null; newDest(want); want = null; $('nwb').textContent = ''; }
+  add(e.target.files);
+  e.target.value = '';
+};
+$('fDir').onchange = e => { folder(e.target.files); e.target.value = ''; };
+$('nwB').onclick = () => {
+  const h = $('nwb');
+  if (h.firstChild) return h.textContent = '';
+  h.append(newBox(p => { want = p; $('fFiles').click(); }));
+};
+$('dB').onclick = () => picker($('pkq'), null, p => { ASK = null; setDest(p); });
+$('askE').onclick = () => setDest(ASK.ex);
+$('askN').onclick = () => setDest(ASK.nw);
+$('flt').oninput = drawLib;
+$('num').onchange = () => plan();
+$('send').onclick = send;
+$('cancel').onclick = cancel;
+$('done').onclick = async () => {
+  stop();
+  try { await api('/api/done', true); } catch (e) {}
+  $('app').hidden = true;
+  $('end').hidden = false;
+};
+all('#lang button').forEach(b => b.onclick = () => {
+  try { localStorage.setItem('lang', b.dataset.l); } catch (e) {}
+  setLang(b.dataset.l);
+});
+
+// iOS diz ter webkitdirectory mas so escolhe arquivos.
+$('dirBtn').hidden = /iP(hone|ad)/.test(navigator.userAgent) || !('webkitdirectory' in mk('input'));
+
+(async () => {
+  try { S = await api('/api/state'); } catch (e) {
+    L = pickLang();
+    $('bootOff').textContent = t('off');
+    $('bootOff').hidden = false;
+    await waitState();
+    stat = ['ready', []];
+  }
+  await loose();
+  $('boot').hidden = $('bootOff').hidden = true;
+  $('app').hidden = false;
+  setLang(pickLang());
+})();
+</script>
+</body>
+</html>
