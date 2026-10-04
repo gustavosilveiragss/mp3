@@ -69,6 +69,10 @@ void Audio::disconnect() {
     peer_[0] = '\0';
 }
 
+void Audio::forgetAll() {
+    disconnect();
+}
+
 void Audio::update() {
     const uint32_t now = millis();
     if (scanning_) {

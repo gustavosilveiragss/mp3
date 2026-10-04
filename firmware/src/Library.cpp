@@ -2,87 +2,62 @@
 
 namespace {
 
-template <typename Dir, typename Valid, typename Insert>
-void forEachEntry(Dir& dir, Valid valid, Insert insert) {
-    for (File e = dir.openNextFile(); e; e = dir.openNextFile()) {
-        if (valid(e))
-            insert(e.name());
-    }
-}
-
-// Insercao ordenada sem alocar: as listas sao pequenas e ficam em arrays fixos.
-template <size_t N>
-bool insertSorted(char (*list)[N], uint16_t& count, uint16_t capacity, const char* name) {
-    if (count >= capacity)
-        return false;
-    uint16_t at = count;
-    while (at > 0 && strcasecmp(list[at - 1], name) > 0)
-        --at;
-    memmove(list[at + 1], list[at], (count - at) * N);
-    strlcpy(list[at], name, N);
-    ++count;
-    return true;
-}
-
-struct PlaylistDir {
-    char path[sizeof(kMusicDir) + mrm::kMaxPlaylistLen + 2];
-    explicit PlaylistDir(const char* playlist) { snprintf(path, sizeof(path), "%s/%s", kMusicDir, playlist); }
-};
-
-bool isTrack(File& e) {
-    return !e.isDirectory() && mrm::validTrackName(e.name());
+void playlistDir(const char* playlist, char* out, size_t size) {
+    snprintf(out, size, "%s/%.*s", kMusicDir, int(mrm::kMaxPlaylistLen), playlist);
 }
 
 } // namespace
 
 void Library::scan() {
-    playlists_ = 0;
-    trackCount_ = 0;
-    selected_ = kNone;
-    truncated_ = false;
-
-    File root = fs_.open(kMusicDir);
-    if (!root || !root.isDirectory())
-        return;
-
-    uint16_t count = 0;
-    forEachEntry(
-        root, [](File& e) { return e.isDirectory() && mrm::validPlaylistName(e.name()); },
-        [&](const char* name) { truncated_ |= !insertSorted(names_, count, kMaxPlaylists, name); });
-    playlists_ = static_cast<uint8_t>(count);
-
-    for (uint8_t p = 0; p < playlists_; ++p)
-        counts_[p] = countTracks(names_[p]);
+    selected_[0] = '\0';
+    playlists_.open(kMusicDir);
+    tracks_.open("");
 }
 
-uint16_t Library::countTracks(const char* playlist) {
-    File dir = fs_.open(PlaylistDir(playlist).path);
-    uint16_t count = 0;
-    if (dir && dir.isDirectory())
-        forEachEntry(dir, isTrack, [&](const char*) { ++count; });
-    if (count > kMaxTracks) {
-        truncated_ = true;
-        count = kMaxTracks;
+bool Library::playlistIndex(const char* name, uint8_t& index) const {
+    uint16_t at = 0;
+    const bool found = playlists_.indexOf(name, at) && at < kMaxPlaylists;
+    if (found)
+        index = static_cast<uint8_t>(at);
+    return found;
+}
+
+uint16_t Library::trackCount(uint8_t playlist) const {
+    uint16_t& cached = playlists_.aux(playlist);
+    if (cached == DirWindow::kUnknown) {
+        char dir[sizeof(kMusicDir) + mrm::kMaxPlaylistLen + 2];
+        playlistDir(playlists_.name(playlist), dir, sizeof(dir));
+        cached = min<uint16_t>(dirlist::count(dir, false), kMaxTracks);
     }
-    return count;
+    return cached;
+}
+
+uint32_t Library::totalTracks() const {
+    char dir[sizeof(kMusicDir) + mrm::kMaxPlaylistLen + 2];
+    uint32_t sum = 0;
+    dirlist::each(kMusicDir, [&](const dirlist::Entry& e) {
+        if (dirlist::valid(e, true)) {
+            playlistDir(e.name, dir, sizeof(dir));
+            sum += min<uint16_t>(dirlist::count(dir, false), kMaxTracks);
+        }
+        return true;
+    });
+    return sum;
 }
 
 bool Library::select(uint8_t playlist) {
-    if (playlist >= playlists_)
+    if (playlist >= playlistCount())
         return false;
-    selected_ = playlist;
-    trackCount_ = 0;
-
-    File dir = fs_.open(PlaylistDir(names_[playlist]).path);
-    if (!dir || !dir.isDirectory())
-        return false;
-    forEachEntry(dir, isTrack, [&](const char* name) { insertSorted(tracks_, trackCount_, kMaxTracks, name); });
+    strlcpy(selected_, playlists_.name(playlist), sizeof(selected_));
+    char dir[sizeof(kMusicDir) + mrm::kMaxPlaylistLen + 2];
+    playlistDir(selected_, dir, sizeof(dir));
+    tracks_.open(dir);
     return true;
 }
 
-bool Library::trackPath(uint16_t track, char* out, size_t size) const {
-    if (selected_ == kNone || track >= trackCount_)
+bool Library::trackPath(const char* track, char* out, size_t size) const {
+    if (!selected_[0] || !track[0])
         return false;
-    const int n = snprintf(out, size, "%s/%s/%s", kMusicDir, names_[selected_], tracks_[track]);
+    const int n = snprintf(out, size, "%s/%s/%s", kMusicDir, selected_, track);
     return n > 0 && static_cast<size_t>(n) < size;
 }

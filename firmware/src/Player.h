@@ -9,8 +9,6 @@
 // Liga os gestos do Keypad a biblioteca, preferencias e audio, e descreve o estado para a Ui.
 class Player {
 public:
-    static constexpr uint32_t kIdleMs = 30000; // pausado e sem toque: o display pode apagar
-
     Player(Library& library, Settings& settings, Audio& audio)
         : library_(library)
         , settings_(settings)
@@ -24,8 +22,6 @@ public:
     void pause() { togglePlayIf(false); }
     void play() { togglePlayIf(true); } // vale so com fone conectado; Player::update toca a faixa atual
     bool wantsPlay() const { return playing(); }
-    bool idle() const;
-    void touch();
     const Library& library() const { return library_; }
     uint8_t playlistIndex() const { return playlist_; }
     void choosePlaylist(uint8_t index);
@@ -42,6 +38,7 @@ private:
     void changeVolume(int delta);
     void startTrack();
     void remember();
+    void showTrack();
 
     Library& library_;
     Settings& settings_;
@@ -53,8 +50,9 @@ private:
     uint8_t playlist_ = 0;
     uint8_t playlistFrom_ = 0;
     uint16_t track_ = 0;
+    char playlistName_[mrm::kMaxPlaylistLen + 1] = ""; // copias: a Library so guarda uma janela de nomes
+    char trackName_[mrm::kMaxTrackLen + 1] = "";
 
-    uint32_t activityAt_ = 0;
     uint32_t trackAt_ = 0;
     uint32_t volumeAt_ = 0;      // ultimo passo de volume
     uint32_t volumeShownAt_ = 0; // quando o painel de volume apareceu

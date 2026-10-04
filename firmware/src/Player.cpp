@@ -1,14 +1,7 @@
 #include "Player.h"
 
-namespace {
-uint32_t stamp() {
-    return max<uint32_t>(millis(), 1);
-} // 0 significa "nunca" na View
-} // namespace
-
 void Player::begin(bool mediaOk) {
     mediaOk_ = mediaOk;
-    activityAt_ = stamp();
     audio_.setVolume(settings_.volume());
     reload();
 }
@@ -18,22 +11,19 @@ void Player::reload() {
     if (!mediaOk_)
         return;
     library_.scan();
-    bool found = false;
     playlist_ = 0;
-    for (uint8_t p = 0; p < library_.playlistCount() && !found; ++p) {
-        found = strcmp(library_.playlistName(p), settings_.playlist()) == 0;
-        if (found)
-            playlist_ = p;
-    }
+    library_.playlistIndex(settings_.playlist(), playlist_);
+    strlcpy(playlistName_, library_.playlistName(playlist_), sizeof(playlistName_));
     track_ = 0;
     loaded_ = false;
     wantPlay_ = false;
     if (library_.select(playlist_) && library_.trackCount() > 0)
         track_ = min<uint16_t>(settings_.track(), library_.trackCount() - 1);
+    showTrack();
 }
 
-void Player::touch() {
-    activityAt_ = stamp();
+void Player::showTrack() {
+    strlcpy(trackName_, library_.trackName(track_), sizeof(trackName_));
 }
 
 void Player::update() {
@@ -56,7 +46,6 @@ void Player::handle(Keypad::Action action) {
     using Action = Keypad::Action;
     if (action == Action::None)
         return;
-    activityAt_ = stamp();
     if (action == Action::NextPlaylist && library_.playlistCount() > 1) {
         nextPlaylist(); // vale mesmo com a playlist atual vazia
         return;
@@ -88,10 +77,6 @@ void Player::handle(Keypad::Action action) {
     }
 }
 
-bool Player::idle() const {
-    return !playing() && millis() - activityAt_ >= kIdleMs;
-}
-
 View Player::view() const {
     View v;
     v.trackAt = trackAt_;
@@ -101,10 +86,10 @@ View Player::view() const {
     v.playlistAt = playlistAt_;
     v.playlistPrev = playlistFrom_;
     v.volume = settings_.volume();
-    v.playlist = library_.playlistName(playlist_);
+    v.playlist = playlistName_;
     v.playlistIndex = playlist_;
     v.playlistCount = library_.playlistCount();
-    v.track = library_.trackName(track_);
+    v.track = trackName_;
     v.trackIndex = track_;
     v.trackCount = library_.trackCount();
     if (loaded_ && audio_.durationMs() > 0) {
@@ -139,6 +124,7 @@ void Player::step(int direction) {
     trackAt_ = stamp();
     loaded_ = false;
     wantPlay_ = true;
+    showTrack();
     remember();
 }
 
@@ -152,8 +138,10 @@ void Player::choosePlaylist(uint8_t index) {
         return;
     playlistFrom_ = playlist_;
     playlist_ = index;
+    strlcpy(playlistName_, library_.playlistName(playlist_), sizeof(playlistName_));
     library_.select(playlist_);
     track_ = 0;
+    showTrack();
     trackAt_ = playlistAt_ = stamp();
     loaded_ = false;
     remember();
@@ -171,11 +159,11 @@ void Player::changeVolume(int delta) {
 
 void Player::startTrack() {
     char path[96];
-    loaded_ = library_.trackPath(track_, path, sizeof(path)) && audio_.play(path);
+    loaded_ = library_.trackPath(trackName_, path, sizeof(path)) && audio_.play(path);
     if (!loaded_)
         wantPlay_ = false; // faixa ilegivel: para em vez de pular em loop
 }
 
 void Player::remember() {
-    settings_.setPosition(library_.playlistName(playlist_), track_);
+    settings_.setPosition(playlistName_, track_);
 }

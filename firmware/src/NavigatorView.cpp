@@ -1,6 +1,7 @@
 #include "Navigator.h"
 
 namespace {
+constexpr uint32_t kBetweenFilesMs = 6000; // o proximo arquivo da fila ainda deve chegar
 uint8_t percent(uint32_t part, uint32_t whole) {
     return whole ? static_cast<uint8_t>(min<uint64_t>(100, part * 100ull / whole)) : 0;
 }
@@ -38,7 +39,8 @@ void Navigator::fillMenus(View& v) const {
         return;
     const Portal::Progress& p = portal_.progress();
     v.wifiClient = portal_.clientConnected();
-    v.xfer = {p.active, !p.active && portal_.changed(), p.file, p.files, percent(p.sent, p.size), percent(p.totalSent, p.totalSize)};
+    const bool live = p.active || (p.more && millis() - p.at < kBetweenFilesMs);
+    v.xfer = {live, !live && portal_.changed(), p.file, p.files, percent(p.sent, p.size), percent(p.totalSent, p.totalSize)};
 }
 
 View Navigator::view() const {

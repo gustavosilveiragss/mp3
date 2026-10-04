@@ -24,11 +24,13 @@ public:
     static constexpr uint32_t kIdleStopMs = 10UL * 60 * 1000; // sem nenhuma requisicao (celular associado e parado nao conta)
     static constexpr uint32_t kDoneGraceMs = 400;             // deixa a resposta de /api/done sair antes de derrubar a rede
     static constexpr uint32_t kReserveBytes = 64 * 1024;
-    static constexpr uint32_t kMaxFileBytes = 16UL * 1024 * 1024;
-    static constexpr uint8_t kMaxLoose = 64; // .mp3 soltos listados em /api/loose
+    static constexpr uint32_t kMaxFileBytes = 1UL << 30; // 1 GiB: um podcast de horas cabe; FAT32 vai a 4 GiB
+    static constexpr uint8_t kMaxLoose = 64;             // .mp3 soltos listados em /api/loose
 
     struct Progress {
         bool active = false; // um arquivo esta chegando
+        bool more = false;   // acabou um arquivo e a fila ainda tem o proximo: a tela nao pisca entre eles
+        uint32_t at = 0;     // ultimo byte ou fim de arquivo
         uint16_t file = 0, files = 0;
         uint32_t sent = 0, size = 0;
         uint32_t totalSent = 0, totalSize = 0;
@@ -56,10 +58,11 @@ private:
     static constexpr uint8_t kChunk = 16;
     static constexpr size_t kPlaylistBuf = mrm::kMaxPlaylistLen + 1;
     static constexpr size_t kTrackBuf = mrm::kMaxTrackLen + 1;
-    static constexpr size_t kPathMax = 96;
+    static constexpr size_t kPathMax = dirlist::kPath;
     static constexpr size_t kDirMax = sizeof(kMusicDir) + mrm::kMaxPlaylistLen + 1; // /music/<playlist>
     static constexpr size_t kQueryMax = 512;
     static constexpr uint32_t kMaxActionBody = 256;
+    static constexpr uint32_t kStallMs = 12000;     // upload sem um byte por esse tempo e abandonado
     static constexpr uint32_t kRecvTimeoutS = 5;    // pausa do celular sem abortar o upload
     static constexpr uint32_t kTailTimeoutMs = 750; // fim do corpo: o core espera encher 1436 B ou estourar o timeout; folga para o RTO do celular
 
@@ -89,6 +92,7 @@ private:
     void finishUpload();
     void doDelete();
     void doRename();
+    void renameCase(const char* src, const char* dst);
     void doMove();
     void doSwap();
     bool swapFiles(const char* dir, const char* a, const char* b, const char* na, const char* nb);
@@ -112,11 +116,10 @@ private:
     void touch() { idleAt_ = millis(); }
     uint8_t listChunk(const char* dir, bool dirs, const char* after);
     bool nextChunk(const char* dir, bool dirs, char* after, uint8_t& count);
-    uint16_t scanDir(const char* path, bool dirs, uint32_t* bytes);
     bool purge(const char* path);
     void sweepEmpty();
     void recoverSwap();
-    bool restoreSwap(const char* dir);
+    bool findSwap(const char* dir, char* from, char* to, size_t size);
 
     fs::FS& fs_;
     const mrm::Locale& locale_;
@@ -131,6 +134,7 @@ private:
     char chunk_[kChunk][kTrackBuf];
     uint32_t chunkSize_[kChunk];
     char last_[8] = "ok";
+    uint32_t lastU_ = 0; // token do envio a que last_ se refere
 
     TickFn tick_ = nullptr;
     void* tickCtx_ = nullptr;

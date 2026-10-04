@@ -1,114 +1,37 @@
 #include "Audio.h"
 
-#include <BtSource.h>
 #include <Mp3Probe.h>
-#include <Mp3Stream.h>
 
 #include "Media.h"
 
 #include <fcntl.h>
 #include <unistd.h>
 
-#ifndef MP3_BT_DEBUG
-#define MP3_BT_DEBUG 0
-#endif
-#ifndef MP3_BT_CYCLES
-#define MP3_BT_CYCLES 0
-#endif
-#ifndef MP3_BT_CONNTEST
-#define MP3_BT_CONNTEST 0
-#endif
-#ifndef MP3_TEST_DECODE
-#define MP3_TEST_DECODE 0 // 1: no boot, antes do radio, mede a banda do decoder com um consumidor falso
-#endif
-#ifndef MP3_AUDIO_DEBUG
-#define MP3_AUDIO_DEBUG 0 // 1: uma linha por segundo e eventos do audio no serial (engasgo com o fone)
-#endif
-#if MP3_BT_DEBUG || MP3_BT_CYCLES || MP3_BT_CONNTEST || MP3_TEST_DECODE || MP3_AUDIO_DEBUG
-#include <Log.h>
-#endif
-#if MP3_AUDIO_DEBUG
-#define AUD_EV(...) mrm::log("aud ", millis(), " ", __VA_ARGS__)
-#else
-#define AUD_EV(...) ((void)0)
-#endif
+#include "AudioCore.h"
+#include "AudioDebug.h"
 
-#if MP3_AUDIO_DEBUG
-extern uint8_t gSbcBitpool; // BtWrap.cpp
-extern uint16_t gSbcMtu;
-#endif
+namespace audio {
+mrm::BtSource bt;
+mrm::Mp3Stream stream;
+} // namespace audio
+
+using audio::bt;
+using audio::stream;
 
 namespace {
 
 constexpr uint32_t kSwitchGapMs = 800; // o fone anterior precisa soltar o link antes do proximo connect
 constexpr uint8_t kBtMaxVolume = 127;
 
-mrm::BtSource bt;
-mrm::Mp3Stream stream;
-
-#if MP3_AUDIO_DEBUG
-// Escritos so pelo callback do A2DP; o loop le e zera uma vez por segundo.
-std::atomic<uint32_t> cbCalls{0}, cbBytes{0}, cbMaxGapUs{0}, cbMaxLen{0}, ringMin{UINT32_MAX};
-uint32_t cbLastUs = 0;
-// Frames por rodada do alarme de 30 ms da pilha: 10-11 e o normal; 7 fixo e a fila do A2DP travada
-// em 1 pacote por rodada (engasgo com o fone clone, 2/3 do audio).
-std::atomic<uint32_t> tickN{0}, tickMin{UINT32_MAX}, tickMax{0};
-uint32_t tickCur = 0;
-
-void closeTick() {
-    tickN.fetch_add(1);
-    if (tickCur < tickMin.load())
-        tickMin.store(tickCur);
-    if (tickCur > tickMax.load())
-        tickMax.store(tickCur);
-    tickCur = 0;
-}
-
-void watchFeed(int32_t len) {
-    const uint32_t now = micros();
-    if (cbLastUs && now - cbLastUs > cbMaxGapUs.load())
-        cbMaxGapUs.store(now - cbLastUs);
-    if (cbLastUs && now - cbLastUs > 8000 && tickCur)
-        closeTick();
-    if (len > 0)
-        ++tickCur;
-    cbLastUs = now;
-    if (len <= 0)
-        return;
-    cbCalls.fetch_add(1);
-    cbBytes.fetch_add(len);
-    if (uint32_t(len) > cbMaxLen.load())
-        cbMaxLen.store(len);
-    if (stream.buffered() < ringMin.load())
-        ringMin.store(stream.buffered());
-}
-
-void report(int link, int state, uint8_t volume) {
-    static uint32_t at = 0, under0 = 0, frames0 = 0, busy0 = 0;
-    const uint32_t now = millis();
-    if (now - at < 1000)
-        return;
-    at = now;
-    const mrm::Mp3Stream::Stats& st = stream.stats();
-    const uint32_t under = stream.underruns(), frames = st.frames - frames0;
-    mrm::log("aud ", now, " 1s link=", link, " bt=", static_cast<int>(bt.state()), " st=", state, " und=", under, " +",
-             under - under0, " ring_min=", ringMin.exchange(UINT32_MAX), " ring=", stream.buffered(),
-             " cb=", cbCalls.exchange(0), " B=", cbBytes.exchange(0), " gap_max_us=", cbMaxGapUs.exchange(0),
-             " len_max=", cbMaxLen.exchange(0), " dec_fr=", frames, " dec_avg_us=", frames ? (st.busyUs - busy0) / frames : 0,
-             " dec_max_us=", st.maxUs, " err=", st.errors, " pilha=", stream.stackFree(), " heap=", ESP.getFreeHeap(),
-             " min=", ESP.getMinFreeHeap(), " vol=", volume, " btvol=", bt.get_volume(), " pos=", stream.playedFrames(), " ticks=", tickN.exchange(0),
-             " tmin=", tickMin.exchange(UINT32_MAX), " tmax=", tickMax.exchange(0), " bp=", gSbcBitpool, " mtu=", gSbcMtu);
-    under0 = under;
-    frames0 = st.frames;
-    busy0 = st.busyUs;
-}
-#endif
-
 int32_t feed(uint8_t* data, int32_t len) {
 #if MP3_AUDIO_DEBUG
-    watchFeed(len);
+    audiodebug::feedStart(len);
 #endif
-    return stream.read(data, len);
+    const int32_t got = stream.read(data, len);
+#if MP3_AUDIO_DEBUG
+    audiodebug::feedDone(data, got);
+#endif
+    return got;
 }
 
 size_t readAt(void* ctx, uint32_t offset, uint8_t* buf, size_t n) {
@@ -132,164 +55,12 @@ bool probe(const char* path, mrm::Mp3Info& info) {
     return ok;
 }
 
-#if MP3_TEST_DECODE
-// Teste de banda sem fone: uma task no core 0 faz o papel do callback do A2DP (441 frames a cada
-// 10 ms, prioridade alta) e o decoder toca o primeiro MP3 de /music em loop por 20 s em cada clock.
-std::atomic<bool> consuming{false};
-
-void fakeBt(void*) {
-    static uint8_t buf[441 * 4];
-    TickType_t last = xTaskGetTickCount();
-    while (consuming) {
-        stream.read(buf, sizeof(buf));
-        vTaskDelayUntil(&last, pdMS_TO_TICKS(10));
-    }
-    vTaskDelete(nullptr);
-}
-
-bool firstMp3In(File dir, char* out, size_t size) {
-    for (File f = dir.openNextFile(); f; f = dir.openNextFile())
-        if (!f.isDirectory() && strstr(f.name(), ".mp3")) {
-            strlcpy(out, f.path(), size);
-            return true;
-        }
-    return false;
-}
-
-bool firstTrack(char* out, size_t size) {
-    File root = media::fs().open("/music");
-    for (File d = root.openNextFile(); d; d = root.openNextFile())
-        if (d.isDirectory() && firstMp3In(d, out, size))
-            return true;
-    return false;
-}
-
-void decodeRun(const char* path, const mrm::Mp3Info& info, uint32_t mhz) {
-    setCpuFrequencyMhz(mhz);
-    const mrm::Mp3Stream::Stats s0 = stream.stats();
-    const uint32_t under0 = stream.underruns();
-    const uint32_t t0 = millis();
-    uint16_t loops = 0;
-    stream.start(path, info);
-    while (millis() - t0 < 20000) {
-        vTaskDelay(pdMS_TO_TICKS(20));
-        if (stream.finished() && stream.start(path, info))
-            ++loops;
-    }
-    stream.stop();
-    const mrm::Mp3Stream::Stats& s = stream.stats();
-    const uint32_t frames = s.frames - s0.frames;
-    const uint32_t busy = s.busyUs - s0.busyUs;
-    mrm::log("dec ", mhz, " MHz: frames=", frames, " us/frame=", frames ? busy / frames : 0, " max=", s.maxUs,
-             " cpu=", busy / ((millis() - t0) * 10), "% underruns=", stream.underruns() - under0,
-             " erros=", s.errors - s0.errors, " voltas=", loops, " heap=", ESP.getFreeHeap(),
-             " min=", ESP.getMinFreeHeap(), " pilha livre=", stream.stackFree());
-}
-
-// Cada faixa por 3 s: start aceita so 44,1 kHz, decodifica sem erro (mono e VBR) e o stop e curto.
-void eachTrack() {
-    File dir = media::fs().open("/music/teste");
-    for (File f = dir.openNextFile(); f; f = dir.openNextFile()) {
-        char p[96];
-        mrm::Mp3Info info;
-        strlcpy(p, f.path(), sizeof(p));
-        f.close();
-        const mrm::Mp3Stream::Stats s0 = stream.stats();
-        const bool started = probe(p, info) && stream.start(p, info);
-        vTaskDelay(pdMS_TO_TICKS(3000));
-        const uint32_t played = stream.playedFrames();
-        const uint32_t t = micros();
-        stream.stop();
-        mrm::log("dec faixa start=", started, " frames=", stream.stats().frames - s0.frames,
-                 " erros=", stream.stats().errors - s0.errors, " tocado=", played * 10 / 441, " ms stop=", micros() - t,
-                 " us ", p);
-    }
-}
-
-void decodeTest(uint32_t heapBefore) {
-    char path[96];
-    mrm::Mp3Info info;
-    if (!firstTrack(path, sizeof(path))) {
-        mrm::log("dec sem mp3 em /music");
-        return;
-    }
-    File dir = media::fs().open("/music/teste");
-    for (File f = dir.openNextFile(); f; f = dir.openNextFile()) {
-        char p[96];
-        strlcpy(p, f.path(), sizeof(p));
-        f.close();
-        const uint32_t t = micros();
-        const bool ok = probe(p, info);
-        mrm::log("dec probe ", ok, " ", micros() - t, " us dur=", info.durationMs, " rate=", info.sampleRate, " ", p);
-    }
-    const uint32_t p0 = micros();
-    const bool ok = probe(path, info);
-    mrm::log("dec ", path, " probe=", ok, " em ", micros() - p0, " us dur=", info.durationMs, " ms off=", info.dataOffset,
-             " rate=", info.sampleRate, " kbps=", info.kbps, " ch=", info.channels);
-    mrm::log("dec heap antes do begin=", heapBefore, " depois=", ESP.getFreeHeap());
-    consuming = true;
-    xTaskCreatePinnedToCore(fakeBt, "fakebt", 2048, nullptr, 19, nullptr, 0);
-    for (uint32_t mhz : {240u, 160u, 80u})
-        decodeRun(path, info, mhz);
-    setCpuFrequencyMhz(240);
-    eachTrack();
-    consuming = false;
-    setCpuFrequencyMhz(240);
-    vTaskDelay(pdMS_TO_TICKS(50));
-    mrm::log("dec fim heap=", ESP.getFreeHeap(), " min=", ESP.getMinFreeHeap());
-}
-#endif
-
-#if MP3_BT_CONNTEST
-// Conecta num BDA que nao existe durante a varredura (cancela, tenta, falha) e varre de novo.
-void connectTest(Audio& audio, uint32_t now) {
-    static const uint8_t ghost[6] = {0x02, 0x11, 0x22, 0x33, 0x44, 0x55};
-    static uint8_t step = 0;
-    if (step == 0 && now > 5000) {
-        mrm::log("bt-conntest connect fantasma");
-        audio.connect("fantasma", ghost);
-        step = 1;
-    } else if (step == 1 && now > 24000) {
-        mrm::log("bt-conntest link=", static_cast<int>(audio.link()), " scan de novo");
-        audio.scan();
-        step = 2;
-    }
-}
-#endif
-
-#if MP3_BT_CYCLES
-// Ciclos stop/start do radio com o heap no log, para provar que a memoria volta. So em bancada.
-void logHeap(const char* tag, uint32_t tookMs) {
-    mrm::log("bt-heap ", tag, " free=", ESP.getFreeHeap(), " min=", ESP.getMinFreeHeap(), " took=", tookMs, "ms");
-}
-
-void heapCycles(Audio& audio, uint32_t now) {
-    static uint32_t nextAt = 45000; // deixa as varreduras e o teste de conexao terminarem antes
-    static uint8_t step = 0;
-    if (step >= 2 * MP3_BT_CYCLES || now < nextAt)
-        return;
-    logHeap("antes", 0);
-    const bool stopping = step % 2 == 0;
-    audio.setEnabled(!stopping);
-    logHeap(stopping ? "stop" : "start", millis() - now);
-    if (++step == 2 * MP3_BT_CYCLES)
-        mrm::log("bt-heap ciclos fim");
-    nextAt = millis() + 9000;
-}
-#endif
-
 } // namespace
 
 void Audio::begin() {
     link_ = Link::Off; // o radio so liga quando o Settings pedir (setEnabled)
-#if MP3_TEST_DECODE
-    const uint32_t heapBefore = ESP.getFreeHeap();
-#endif
     stream.begin(media::fs());
     bt.set_data_callback(feed);
-#if MP3_TEST_DECODE
-    decodeTest(heapBefore);
-#endif
 }
 
 void Audio::stopTrack() {
@@ -345,6 +116,8 @@ void Audio::connect(const char* name, const uint8_t* bda) {
     using S = mrm::BtSource::State;
     const S s = bt.state();
     memmove(peerBda_, target, sizeof(peerBda_));
+    repaired_ = false;
+    dialAt_ = millis();
     if (s == S::Connecting || s == S::Connected || s == S::Streaming) {
         bt.disconnect();
         switching_ = true;
@@ -385,35 +158,22 @@ void Audio::readDevices() {
         lastAud = s;
     }
 #endif
-#if MP3_BT_DEBUG
-    for (uint8_t i = deviceCount_; i < count; ++i)
-        mrm::log("bt achado ", devices_[i].name, " rssi=", devices_[i].rssi);
-    static S lastBt = S::Off;
-    if (s != lastBt) {
-        mrm::log("bt estado ", static_cast<int>(s), " heap=", ESP.getFreeHeap(), " min=", ESP.getMinFreeHeap());
-        lastBt = s;
-    }
-#endif
     deviceCount_ = count;
 }
 
 void Audio::update() {
     const uint32_t now = millis();
-#if MP3_BT_CONNTEST
-    connectTest(*this, now);
-#endif
-#if MP3_BT_CYCLES
-    heapCycles(*this, now);
-#endif
     if (link_ == Link::Off)
         return;
     bt.update();
     using S = mrm::BtSource::State;
     if (switching_ && now - switchAt_ >= kSwitchGapMs) {
         switching_ = false;
+        dialAt_ = now;
         if (!bt.connect(peerBda_))
             peer_[0] = '\0';
     }
+    repairBond(now);
 
     readDevices();
     const S s = bt.state();
@@ -438,13 +198,13 @@ void Audio::update() {
         AUD_EV("fim da faixa");
     }
 #if MP3_AUDIO_DEBUG
-    report(static_cast<int>(link_), static_cast<int>(state_), volume_);
+    audiodebug::report(static_cast<int>(link_), static_cast<int>(state_), volume_);
 #endif
 }
 
 bool Audio::play(const char* path) {
-    state_ = State::Idle; // consome o Finished: se a faixa nao abrir, o Player nao entra em laco de saltos
-    mrm::Mp3Info info;
+    stopTrack();       // fecha a faixa anterior: o cartao tem um slot de arquivo so, e o probe abre outro
+    mrm::Mp3Info info; // (o Finished some junto: se a faixa nao abrir, o Player nao entra em laco de saltos)
     const bool ok = connected() && probe(path, info) && stream.start(path, info);
     AUD_EV("play ", ok, " bt=", static_cast<int>(bt.state()), " ring=", stream.buffered(), " ", path);
     if (!ok)

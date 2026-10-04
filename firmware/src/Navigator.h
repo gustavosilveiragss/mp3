@@ -77,6 +77,7 @@ private:
     void retryConnection();
     uint8_t rows() const;
     void select();
+    void selectBluetooth();
     void selectDevice();
     void selectConfig();
     void back();

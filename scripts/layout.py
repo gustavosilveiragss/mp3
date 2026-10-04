@@ -62,11 +62,12 @@ for i, lang in enumerate(("pt-BR", "en")):
         check(f"{lang} 16pt {n}", width(g(n), 16), W - 4)
     for n in ("BtOffBody", "HoldSettings", "HoldSend", "HoldConnect", "RestartOr", "ReplaceCard", "ConnectingTo", "AutoOpens", "OrGoTo", "PickOnPhone", "SendMore"):
         check(f"{lang} 10pt {n}", width(g(n), 10), W - 4)
-    for n in ("Wifi", "Bluetooth", "Language", "Exit", "UploadMusic", "PickDevice", "Back"):
+    for n in ("Wifi", "Bluetooth", "Language", "Exit", "UploadMusic", "PickDevice", "ForgetDevice", "Back"):
         check(f"{lang} rotulo {n}", width(g(n), 10), W - 4 - 24)  # sobra a direita para interruptor ou valor
     for n in ("On", "Off", "NoDevice"):
         check(f"{lang} valor {n}", width(g(n), 10), W // 2 - 4)
-    check(f"{lang} recebendo 128/128 e 100%", width(g("Receiving") + " 128/128", 10) + width("100%", 10), W - 8 - 4)
+    check(f"{lang} recebendo e 100%", width(g("Receiving"), 10) + width("100%", 10), W - 8 - 4)
+    check(f"{lang} contador 1000/1000", width("1000/1000", 10), W - 8)
     check(f"{lang} total 100%", width(g("Total") + " 100%", 10), W - 8)
     check(f"{lang} 'buscando...'", width(g("Scanning") + "...", 10), W - 28)
     check(f"{lang} 'buscar de novo'", width(g("ScanAgain"), 10), W - 28)

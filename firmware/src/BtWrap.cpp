@@ -5,7 +5,7 @@
 #include <BtSource.h>
 
 #if MRM_HAS_BT_SOURCE
-constexpr int kPacketFrames = 11;
+constexpr int kPacketFrames = 7;
 
 struct SbcCie { // tA2D_SBC_CIE do Bluedroid (IDF 4.4)
     uint8_t sampFreq, chMode, blockLen, numSubbands, allocMthd, maxBitpool, minBitpool;

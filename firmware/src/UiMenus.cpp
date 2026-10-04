@@ -28,19 +28,31 @@ void config(Panel& o, const View& v, uint32_t now, const Locale& t) {
     menuScreen(o, v, now, {hintItems, 3, t(Txt::Settings), rows, menu::kConfigRows});
 }
 
-// Biblioteca: Voltar no topo, depois uma linha por playlist com a quantidade de faixas.
+// Biblioteca: Voltar no topo, depois uma linha por playlist com a quantidade de faixas. So as linhas em volta do
+// cursor viram Row (a lista pode ter centenas): a janela acompanha o cursor, entao a rolagem sai igual a de uma lista inteira.
 void playlists(Panel& o, const View& v, uint32_t now, const Locale& t) {
     const Hint hintItems[] = {{"A", t(Txt::HintDown)}, {"B", t(Txt::HintOk)}, {"A+B", t(Txt::HintBack)}};
-    constexpr uint8_t kMax = Library::kMaxPlaylists;
-    Row rows[kMax + menu::kPlaylistsFirst];
-    char counts[kMax][5];
-    rows[menu::kPlaylistsBack] = Row{t(Txt::Back)};
-    const uint8_t n = min<uint8_t>(v.library->playlistCount(), kMax);
-    for (uint8_t i = 0; i < n; ++i) {
-        snprintf(counts[i], sizeof(counts[i]), "%u", min<uint16_t>(v.library->trackCount(i), 999));
-        rows[menu::kPlaylistsFirst + i] = Row{v.library->playlistName(i), counts[i], -1, 1, i == v.playlistIndex};
+    constexpr uint8_t kRows = 8;
+    constexpr uint8_t kBehind = 3; // linhas antes do cursor
+    const uint8_t total = v.library->playlistCount() + menu::kPlaylistsFirst;
+    const uint8_t rowsShown = min<uint8_t>(total, kRows);
+    const uint8_t start = min<uint8_t>(v.cursor > kBehind ? v.cursor - kBehind : 0, total - rowsShown);
+    Row rows[kRows];
+    char counts[kRows][5];
+    char names[kRows][mrm::kMaxPlaylistLen + 1]; // a janela da Library troca de nomes no meio do laco
+    for (uint8_t i = 0; i < rowsShown; ++i) {
+        const uint8_t at = start + i;
+        if (at < menu::kPlaylistsFirst) {
+            rows[i] = Row{t(Txt::Back)};
+            continue;
+        }
+        const uint8_t playlist = at - menu::kPlaylistsFirst;
+        snprintf(counts[i], sizeof(counts[i]), "%u", min<uint16_t>(v.library->trackCount(playlist), 999));
+        strlcpy(names[i], v.library->playlistName(playlist), sizeof(names[i]));
+        rows[i] = Row{names[i], counts[i], -1, 1, playlist == v.playlistIndex};
     }
-    menuScreen(o, v, now, {hintItems, 3, t(Txt::Library), rows, static_cast<uint8_t>(n + menu::kPlaylistsFirst)});
+    const auto local = [&](uint8_t pos) { return static_cast<uint8_t>(constrain(int(pos) - start, 0, rowsShown - 1)); };
+    mrm::ui::menuScreen(o, {local(v.cursor), local(v.cursorPrev), v.cursorAt}, now, {hintItems, 3, t(Txt::Library), rows, rowsShown});
 }
 
 // O titulo vira a explicacao curtissima da linha em foco, para caber numa tela de 128x64.
@@ -108,6 +120,7 @@ void bluetooth(Panel& o, const View& v, uint32_t now, const Locale& t) {
     Row rows[menu::kBluetoothRows];
     rows[menu::kBluetoothToggle] = Row{t(Txt::Bluetooth), nullptr, v.btOn, eased(now, v.btAt, kMoveMs)};
     rows[menu::kBluetoothPick] = Row{t(Txt::PickDevice)};
+    rows[menu::kBluetoothForget] = Row{t(Txt::ForgetDevice)};
     rows[menu::kBluetoothBack] = {.label = t(Txt::Back)};
     menuScreen(o, v, now, {hintItems, 3, t(Txt::Bluetooth), rows, menu::kBluetoothRows});
 }
@@ -149,21 +162,20 @@ void bar(Panel& o, int16_t y, int16_t h, uint8_t percent, uint32_t now) {
     o.setColor(WHITE);
 }
 
-// "recebendo 3/12", barra do arquivo, barra da fila e o total em numero.
+// "enviando 3/12", uma barra so para a fila inteira e o percentual.
 void receiving(Panel& o, const View& v, uint32_t now, const Locale& t) {
     char text[32];
     o.setFont(ArialMT_Plain_10);
     o.setTextAlignment(TEXT_ALIGN_LEFT);
-    snprintf(text, sizeof(text), "%s %u/%u", t(Txt::Receiving), v.xfer.file, v.xfer.files);
-    o.drawText(4, 14, text);
+    o.drawText(4, 14, t(Txt::Receiving));
     o.setTextAlignment(TEXT_ALIGN_RIGHT);
-    snprintf(text, sizeof(text), "%u%%", v.xfer.percent);
+    snprintf(text, sizeof(text), "%u%%", v.xfer.total);
     o.drawText(kW - 4, 14, text);
-    bar(o, 29, 9, v.xfer.percent, now);
-    bar(o, 42, 7, v.xfer.total, now);
-    o.setTextAlignment(TEXT_ALIGN_LEFT);
-    snprintf(text, sizeof(text), "%s %u%%", t(Txt::Total), v.xfer.total);
-    o.drawText(4, 51, text);
+    bar(o, 30, 12, v.xfer.total, now);
+    if (v.xfer.files > 1) {
+        snprintf(text, sizeof(text), "%u/%u", v.xfer.file, v.xfer.files);
+        centered(o, ArialMT_Plain_10, kW / 2, 46, text);
+    }
 }
 
 } // namespace

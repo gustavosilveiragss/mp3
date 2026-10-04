@@ -30,6 +30,7 @@ public:
     // Procura o nome na varredura; sem achar, usa bda (o guardado em Settings) se vier.
     void connect(const char* name, const uint8_t* bda = nullptr);
     void disconnect();
+    void forgetAll(); // apaga todos os pareamentos guardados no radio
 
     Link link() const { return link_; }
     bool connected() const { return link_ == Link::Connected; }
@@ -54,7 +55,8 @@ public:
     uint32_t durationMs() const { return durationMs_; }
 
 private:
-    void stopTrack(); // so o real
+    void stopTrack();
+    void repairBond(uint32_t now); // so o real
     void readDevices();
 
     Link link_ = Link::Off;
@@ -70,6 +72,8 @@ private:
     uint32_t connectAt_ = 0;
     uint32_t switchAt_ = 0; // so o real: quando o link anterior caiu e a troca de fone pode seguir
     bool switching_ = false;
+    uint32_t dialAt_ = 0;    // so o real: quando o ultimo connect comecou
+    bool repaired_ = false;  // so o real: ja apagamos o pareamento nesta tentativa
     uint32_t startedAt_ = 0; // so o simulado: millis do inicio da retomada atual
     uint32_t basePos_ = 0;   // so o simulado: posicao acumulada antes da retomada atual
     uint32_t durationMs_ = 0;

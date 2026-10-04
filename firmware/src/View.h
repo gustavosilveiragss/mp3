@@ -11,6 +11,11 @@
 
 // Tudo que a Ui precisa para desenhar um quadro. As animacoes saem dos carimbos de tempo (millis do
 // ultimo evento, 0 = nunca): a Ui nao guarda estado nem recebe eventos.
+// Carimbo de tempo da View: 0 significa "nunca", entao o relogio nunca devolve 0.
+inline uint32_t stamp() {
+    return max<uint32_t>(millis(), 1);
+}
+
 struct View {
     static constexpr uint32_t kVolumeVisibleMs = 1100; // painel de volume espera isto depois do ultimo passo
 

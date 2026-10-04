@@ -100,7 +100,7 @@ void Portal::notFound() {
 void Portal::reject(int code, const char* error) {
     strlcpy(last_, error, sizeof(last_));
     req_.upload = false;
-    progress_.active = false;
+    progress_.active = progress_.more = false;
     dropNewDir();
     sendError(code, error);
     req_.replied = true;
@@ -131,7 +131,7 @@ void Portal::cancelUpload() {
     strlcpy(last_, "aborted", sizeof(last_));
     req_.upload = false;
     req_.replied = true;
-    progress_.active = false;
+    progress_.active = progress_.more = false;
     dropNewDir();
     WiFiClient& client = clientOf(*server_);
     client.stop();
@@ -179,7 +179,7 @@ void Portal::onRaw() {
             req_.upload = false;
             dropNewDir();
         }
-        progress_.active = false;
+        progress_.active = progress_.more = false;
         return;
     default:
         return;
@@ -190,6 +190,11 @@ void Portal::startRaw() {
     touch();
     memset(&req_, 0, sizeof(req_));
     req_.started = true;
+    if (server_->uri() == "/api/upload") { // antes de qualquer reject: a pagina cruza last com este token
+        lastU_ = 0;
+        if (readQuery())
+            portal::queryUint(req_.query, "u", lastU_);
+    }
     if (stop_)
         return reject(503, "aborted");
     clientOf(*server_).setTimeout(kRecvTimeoutS);
@@ -231,7 +236,7 @@ void Portal::startUpload() {
     char dir[kPathMax];
     snprintf(dir, sizeof(dir), "%s/%s", kMusicDir, req_.playlist);
     const bool isNew = !fs_.exists(dir);
-    const bool full = isNew ? scanDir(kMusicDir, true, nullptr) >= Library::kMaxPlaylists : scanDir(dir, false, nullptr) >= Library::kMaxTracks;
+    const bool full = isNew ? dirlist::count(kMusicDir, true, nullptr) >= Library::kMaxPlaylists : dirlist::count(dir, false, nullptr) >= Library::kMaxTracks;
     if (full)
         return reject(409, "limit");
     sniff_.reset();
@@ -252,6 +257,7 @@ void Portal::readProgress() {
     queryUint(req_.query, "ts", base);
     progress_ = Progress{};
     progress_.active = true;
+    progress_.at = millis();
     progress_.files = static_cast<uint16_t>(constrain(files, 1u, 65535u));
     progress_.file = static_cast<uint16_t>(constrain(file, 1u, uint32_t(progress_.files)));
     progress_.size = req_.length;
@@ -268,6 +274,7 @@ void Portal::writeRaw(const HTTPRaw& raw) {
         return rejectSink(error);
     progress_.sent = sink_.written();
     progress_.totalSent = req_.base + progress_.sent;
+    progress_.at = millis();
     touch();
     if (tick_)
         tick_(tickCtx_);
@@ -289,7 +296,10 @@ void Portal::finishUpload() {
     req_.upload = false;
     req_.newDir = false;
     progress_.active = false;
+    progress_.more = progress_.file < progress_.files;
+    progress_.at = millis();
     progress_.sent = progress_.size;
+    progress_.totalSent = req_.base + progress_.size;
     changed_ = true;
     strlcpy(last_, "ok", sizeof(last_));
     char body[64];
@@ -371,12 +381,34 @@ void Portal::doRename() {
         snprintf(dst, sizeof(dst), "%s/%s/%s", kMusicDir, req_.playlist, req_.target);
     else
         snprintf(dst, sizeof(dst), "%s/%s", kMusicDir, req_.target);
-    if (fs_.exists(dst))
-        return sendError(409, "exists");
+    const char* from = track ? req_.track : req_.playlist;
+    if (fs_.exists(dst)) {
+        if (!track || strcasecmp(from, req_.target) != 0 || strcmp(from, req_.target) == 0)
+            return sendError(409, "exists");
+        return renameCase(src, dst);
+    }
     if (!fs_.rename(src, dst))
         return sendError(500, "io");
     changed_ = true;
     sendOk(false);
+}
+
+// So maiusculas/minusculas de faixa: em FAT o destino "existe" porque e o proprio arquivo. Passa por
+// ".nome" (que restoreSwap recupera apos queda) e confere de novo; se o destino ainda existe, era outro arquivo.
+void Portal::renameCase(const char* src, const char* dst) {
+    char tmp[kPathMax];
+    const char* slash = strrchr(dst, '/');
+    if (snprintf(tmp, sizeof(tmp), "%.*s.%s", int(slash - dst + 1), dst, slash + 1) >= int(sizeof(tmp)))
+        return sendError(400, "name");
+    if (!fs_.rename(src, tmp))
+        return sendError(500, "io");
+    changed_ = true;
+    const bool other = fs_.exists(dst);
+    if (!other && fs_.rename(tmp, dst))
+        return sendOk(false);
+    if (!fs_.rename(tmp, src))
+        return sendError(500, "io"); // fica ".nome": restoreSwap devolve no proximo begin
+    sendError(other ? 409 : 500, other ? "exists" : "io");
 }
 
 void Portal::doDone() {
@@ -405,7 +437,8 @@ void Portal::sendState() {
     writePlaylists(json);
     json.raw("],\"last\":");
     json.str(last_);
-    json.raw("}");
+    snprintf(buf, sizeof(buf), ",\"lu\":%lu}", static_cast<unsigned long>(lastU_));
+    json.raw(buf);
     json.end();
 }
 
@@ -418,7 +451,7 @@ void Portal::writePlaylists(mrm::JsonOut& json) {
         for (uint8_t i = 0; i < count; ++i) {
             uint32_t bytes = 0;
             snprintf(path, sizeof(path), "%s/%s", kMusicDir, chunk_[i]);
-            const uint16_t tracks = scanDir(path, false, &bytes);
+            const uint16_t tracks = dirlist::count(path, false, &bytes);
             json.raw(first ? "{\"n\":" : ",{\"n\":");
             json.str(chunk_[i]);
             snprintf(path, sizeof(path), ",\"c\":%u,\"b\":%lu}", tracks, static_cast<unsigned long>(bytes));
@@ -435,10 +468,8 @@ void Portal::sendTracks() {
         return sendError(400, "name");
     strlcpy(playlist, server_->arg("p").c_str(), sizeof(playlist));
     snprintf(dir, sizeof(dir), "%s/%s", kMusicDir, playlist);
-    File d = mrm::validPlaylistName(playlist) ? fs_.open(dir) : File();
-    if (!d || !d.isDirectory())
+    if (!mrm::validPlaylistName(playlist) || !dirlist::exists(dir))
         return sendError(404, "name");
-    d.close();
 
     server_->sendHeader("Cache-Control", "no-store");
     server_->setContentLength(CONTENT_LENGTH_UNKNOWN);

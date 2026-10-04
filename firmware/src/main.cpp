@@ -21,7 +21,7 @@ namespace {
 Ssd1306Display display({.sda = pins::kOledSda, .scl = pins::kOledScl});
 Led led({.pin = pins::kLed, .activeLow = false});
 Keypad keys(pins::kKeyA, pins::kKeyB);
-Library library(media::fs());
+Library library;
 Settings settings;
 Audio audio;
 Player player(library, settings, audio);
@@ -95,12 +95,16 @@ void setup() {
     player.begin(mediaOk);
     portal.onTick(portalTick, nullptr);
     navigator.begin();
-#if MP3_TEST_PORTAL
-    navigator.testOpenWifi();
-#endif
 }
 
 void loop() {
+#if MP3_TEST_PORTAL
+    static bool wifiOpened; // parar o BT logo apos ligar derruba o radio (assert em vQueueDelete): espera a varredura assentar
+    if (!wifiOpened && millis() > 12000) {
+        wifiOpened = true;
+        navigator.testOpenWifi();
+    }
+#endif
     readKeys();
     navigator.update();
     settings.defer(audio.connected());

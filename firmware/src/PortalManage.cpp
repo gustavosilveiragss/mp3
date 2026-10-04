@@ -22,7 +22,7 @@ void Portal::doMove() {
     const bool isNew = !fs_.exists(dir);
     if (!isNew && fs_.exists(dst))
         return sendError(409, "exists");
-    if (isNew ? scanDir(kMusicDir, true, nullptr) >= Library::kMaxPlaylists : scanDir(dir, false, nullptr) >= Library::kMaxTracks)
+    if (isNew ? dirlist::count(kMusicDir, true, nullptr) >= Library::kMaxPlaylists : dirlist::count(dir, false, nullptr) >= Library::kMaxTracks)
         return sendError(409, "limit");
     if (isNew && !fs_.mkdir(dir))
         return sendError(500, "io");
@@ -34,7 +34,7 @@ void Portal::doMove() {
     }
     if (req_.playlist[0]) {
         snprintf(dir, sizeof(dir), "%s/%s", kMusicDir, req_.playlist);
-        if (scanDir(dir, false, nullptr) == 0)
+        if (dirlist::count(dir, false, nullptr) == 0)
             fs_.rmdir(dir); // falha sem barulho se sobrou algo que nao e faixa
     }
     sendOk(false);

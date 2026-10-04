@@ -19,8 +19,9 @@ constexpr uint8_t kConfigRows = 8;
 
 constexpr uint8_t kBluetoothToggle = 0;
 constexpr uint8_t kBluetoothPick = 1;
-constexpr uint8_t kBluetoothBack = 2;
-constexpr uint8_t kBluetoothRows = 3;
+constexpr uint8_t kBluetoothForget = 2;
+constexpr uint8_t kBluetoothBack = 3;
+constexpr uint8_t kBluetoothRows = 4;
 
 constexpr uint8_t kWifiToggle = 0;
 constexpr uint8_t kWifiBack = 1;

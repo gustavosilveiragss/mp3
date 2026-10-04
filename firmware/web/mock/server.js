@@ -26,7 +26,7 @@ const DROP = +(arg.drop || 0);
 const LANG = arg.lang || 'pt-BR';
 const FIX = arg.fix ? path.resolve(arg.fix) : null;
 const RESERVE = 65536;
-const LIM = { pl: 16, tr: 128, plLen: 24, trLen: 48, file: 16 * 1048576 };
+const LIM = { pl: 250, tr: 1000, plLen: 24, trLen: 48, file: 1 << 30 }; // igual ao firmware: Library.h e Portal.h
 const MAX_LOOSE = 64;
 const MEDIA = arg.dir ? path.resolve(arg.dir) : fs.mkdtempSync(path.join(os.tmpdir(), 'mrm-mock-'));
 const ROOT = path.join(MEDIA, 'music');
@@ -45,7 +45,7 @@ function seed(n) {
 }
 if (arg.seed) seed(+arg.seed);
 const PAGE = arg.page ? path.resolve(arg.page) : path.join(__dirname, '..', 'portal.html');
-let last = 'ok';
+let last = 'ok', lu = 0;
 
 // Mesmas regras do PathRules.h, contando bytes como o strlen do aparelho.
 function validName(s, max) {
@@ -75,7 +75,7 @@ function state() {
     const t = tracks(n);
     return { n, c: t.length, b: t.reduce((a, x) => a + x.b, 0) };
   });
-  return { lang: LANG, name: 'marmota mp3 K7QX', free: free(), total: TOTAL, reserve: RESERVE, lim: LIM, pl, last };
+  return { lang: LANG, name: 'marmota mp3 K7QX', free: free(), total: TOTAL, reserve: RESERVE, lim: LIM, pl, last, lu };
 }
 
 const BR = [[0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320], [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160]];
@@ -128,6 +128,7 @@ function refuse(req, res, code, e) {
 function upload(req, res, u) {
   const p = u.searchParams.get('p'), n = u.searchParams.get('n');
   const len = +req.headers['content-length'] || 0;
+  lu = +u.searchParams.get('u') || 0;
   console.log(`upload ${p}/${n} ${len} B (${u.searchParams.get('i')}/${u.searchParams.get('of')})`);
   if (req.headers['content-type'] != 'application/octet-stream') return refuse(req, res, 415, 'io');
   if (!validPl(p) || !validTr(n)) return refuse(req, res, 400, 'name');
