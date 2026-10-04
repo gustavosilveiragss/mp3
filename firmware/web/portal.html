@@ -161,7 +161,7 @@ const T = {
     space: '$1 de $2 usados · $3 livres', spaceQ: ' · fila $1', noFit: ' · não cabe, faltam $1',
     wait: 'esperando', check: 'checando', ok: 'ok', skip: 'pulado', tracks: '$1 faixas', track1: '1 faixa',
     ren: 'renomear', del: 'apagar', sure: 'apagar?', up: 'subir', dn: 'descer', mv: 'mover para…', loose: 'soltos', more: '$1+ arquivos',
-    ignored: '$1 ignorados (não são .mp3)', rate: '$1 com taxa diferente de 44,1 kHz: pode tocar errado',
+    ignored: '$1 ignorados (não são .mp3)', rate: '$1 com taxa que o aparelho não toca (só 44,1 e 48 kHz)',
     plFull: 'limite de $1 playlists', trFull: 'limite de $1 faixas',
     bye: 'pronto. o aparelho saiu do modo wi-fi, pode fechar esta página.',
     e_num: 'sem número "NN - " nos dois nomes', e_name: 'nome inválido', e_space: 'sem espaço', e_exists: 'já existe', e_limit: 'limite', e_notmp3: 'não é mp3',
@@ -180,7 +180,7 @@ const T = {
     space: '$1 of $2 used · $3 free', spaceQ: ' · queue $1', noFit: ' · does not fit, $1 short',
     wait: 'waiting', check: 'checking', ok: 'ok', skip: 'skipped', tracks: '$1 tracks', track1: '1 track',
     ren: 'rename', del: 'delete', sure: 'delete?', up: 'up', dn: 'down', mv: 'move to…', loose: 'loose', more: '$1+ files',
-    ignored: '$1 ignored (not .mp3)', rate: '$1 not at 44.1 kHz: may play wrong',
+    ignored: '$1 ignored (not .mp3)', rate: '$1 at a rate the player cannot play (only 44.1 and 48 kHz)',
     plFull: 'limit of $1 playlists', trFull: 'limit of $1 tracks',
     bye: 'done. the device left wi-fi mode, you can close this page.',
     e_num: 'both names need a "NN - " number', e_name: 'bad name', e_space: 'no space', e_exists: 'exists', e_limit: 'limit', e_notmp3: 'not mp3',
@@ -281,6 +281,7 @@ const core = n => n.replace(/\.mp3$/i, '').replace(/^\d+ - /, '');
 
 // Sniff igual ao do aparelho: pula ID3 (syncsafe) e exige cabecalho MPEG Layer III, conferindo o
 // frame seguinte quando cabe no bloco lido.
+const okRate = r => r == 44100 || r == 48000; // as taxas que o decoder do aparelho aceita
 const BR = [[0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320], [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160]];
 
 function frame(b, i) {
@@ -540,7 +541,7 @@ function note(id, txt, err) {
 }
 
 function drawItem(it) {
-  const ch = it.el.querySelector('.ch'), warn = it.st == 'wait' && it.sr && it.sr != 44100;
+  const ch = it.el.querySelector('.ch'), warn = it.st == 'wait' && it.sr && !okRate(it.sr);
   it.el.querySelector('.n').textContent = it.name || it.raw + '.mp3';
   ch.className = 'ch ' + (warn ? 'warn' : it.st);
   ch.textContent = warn ? it.sr / 1000 + ' kHz' : it.st == 'send' ? Math.floor(it.pct * 100) + '%' :
@@ -589,7 +590,7 @@ function draw() {
     (used + plan > room ? t('noFit', fmt(used + plan - room)) : '');
   $('qs').hidden = !Q.length;
   Q.forEach(drawItem);
-  const odd = Q.filter(x => x.sr && x.sr != 44100 && x.st != 'err').length;
+  const odd = Q.filter(x => x.sr && !okRate(x.sr) && x.st != 'err').length;
   note('qn', [ignored ? t('ignored', ignored) : '', odd ? t('rate', odd) : ''].filter(Boolean).join(' · '));
   $('num').disabled = run;
   $('cancel').textContent = t(run ? 'stop' : Q.some(x => x.st == 'wait') ? 'cancel' : 'clear');

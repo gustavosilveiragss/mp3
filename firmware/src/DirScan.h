@@ -12,7 +12,7 @@
 namespace dirlist {
 
 constexpr size_t kName = mrm::kMaxTrackLen + 1; // cabe nome de faixa e de playlist
-constexpr size_t kPath = 96;                    // "/music/<playlist>/<faixa>" com folga
+constexpr size_t kPath = 128;                   // "/music/<playlist>/<faixa>" com folga (maior caso: 104)
 
 struct Entry {
     const char* name;

@@ -160,7 +160,7 @@ void Player::changeVolume(int delta) {
 }
 
 void Player::startTrack() {
-    char path[96];
+    char path[dirlist::kPath];
     loaded_ = library_.trackPath(trackName_, path, sizeof(path)) && audio_.play(path);
     if (!loaded_)
         wantPlay_ = false; // faixa ilegivel: para em vez de pular em loop

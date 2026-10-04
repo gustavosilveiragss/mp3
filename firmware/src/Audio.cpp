@@ -208,7 +208,7 @@ bool Audio::play(const char* path) {
     const bool ok = connected() && probe(path, info) && stream.start(path, info);
     AUD_EV("play ", ok, " bt=", static_cast<int>(bt.state()), " ring=", stream.buffered(), " ", path);
     if (!ok)
-        return false; // ilegivel, nao e MP3 ou taxa diferente de 44,1 kHz
+        return false; // ilegivel, nao e MP3 ou taxa que o decoder nao converte (so 44,1 e 48 kHz)
     durationMs_ = info.durationMs;
     state_ = State::Playing;
     return true;
