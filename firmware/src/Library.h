@@ -29,6 +29,7 @@ public:
 
     bool select(uint8_t playlist);
     uint16_t trackCount() const { return min<uint16_t>(tracks_.total(), kMaxTracks); }
+    bool trackIndex(const char* name, uint16_t& index) const { return tracks_.indexOf(name, index) && index < kMaxTracks; }
     const char* trackName(uint16_t track) const { return track < trackCount() ? tracks_.name(track) : ""; }
     bool trackPath(const char* track, char* out, size_t size) const;
 

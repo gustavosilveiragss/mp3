@@ -24,10 +24,12 @@ public:
     uint8_t volume() const { return volume_; }
     void setVolume(uint8_t volume);
 
-    // Playlist por nome: o indice muda quando uma playlist entra ou sai.
+    // Playlist e faixa por nome: o indice muda quando algo entra ou sai, e achar o nome custa uma passada so no cartao.
+    // O indice fica como plano B para quando o arquivo foi renomeado ou apagado.
     const char* playlist() const { return playlist_; }
+    const char* trackName() const { return trackName_; }
     uint16_t track() const { return track_; }
-    void setPosition(const char* playlist, uint16_t track);
+    void setPosition(const char* playlist, uint16_t track, const char* trackName);
 
     mrm::Lang lang() const { return lang_; }
     void setLang(mrm::Lang lang);
@@ -62,6 +64,7 @@ private:
     uint8_t volume_ = 50;
     char playlist_[mrm::kMaxPlaylistLen + 1] = "";
     uint16_t track_ = 0;
+    char trackName_[mrm::kMaxTrackLen + 1] = "";
     mrm::Lang lang_ = mrm::Lang::PtBr;
     uint16_t best_[kGames]{};
     uint8_t seen_ = 0;

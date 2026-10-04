@@ -37,6 +37,9 @@ void Settings::begin() {
     const char* playlist = doc["playlist"] | "";
     if (mrm::validPlaylistName(playlist))
         strlcpy(playlist_, playlist, sizeof(playlist_));
+    const char* trackName = doc["trackName"] | "";
+    if (mrm::validTrackName(trackName))
+        strlcpy(trackName_, trackName, sizeof(trackName_));
     mrm::Locale::fromCode(doc["lang"] | "", lang_);
     for (uint8_t i = 0; i < kGames; ++i)
         best_[i] = constrain(doc["best"][i] | 0, 0, UINT16_MAX);
@@ -59,6 +62,9 @@ void Settings::loadHot() {
     if (p.getString("pl", playlist, sizeof(playlist)) && mrm::validPlaylistName(playlist)) {
         strlcpy(playlist_, playlist, sizeof(playlist_));
         track_ = p.getUShort("track", track_);
+        char trackName[sizeof(trackName_)];
+        if (p.getString("tn", trackName, sizeof(trackName)) && mrm::validTrackName(trackName))
+            strlcpy(trackName_, trackName, sizeof(trackName_));
     }
     if (p.isKey("dev"))
         p.getString("dev", device_, sizeof(device_));
@@ -79,6 +85,9 @@ void Settings::saveHot() {
         p.putString("pl", playlist_);
     if (!p.isKey("track") || p.getUShort("track") != track_)
         p.putUShort("track", track_);
+    char oldTrack[sizeof(trackName_)];
+    if (!p.getString("tn", oldTrack, sizeof(oldTrack)) || strcmp(oldTrack, trackName_) != 0)
+        p.putString("tn", trackName_);
     if (!p.getString("dev", old, sizeof(old)) || strcmp(old, device_) != 0)
         p.putString("dev", device_);
     uint8_t bda[6];
@@ -103,6 +112,7 @@ void Settings::update() {
     doc["volume"] = volume_;
     doc["playlist"] = playlist_;
     doc["track"] = track_;
+    doc["trackName"] = trackName_;
     doc["lang"] = mrm::Locale::code(lang_);
     JsonArray best = doc["best"].to<JsonArray>();
     for (uint8_t i = 0; i < kGames; ++i)
@@ -129,10 +139,11 @@ void Settings::setVolume(uint8_t volume) {
     touch(true);
 }
 
-void Settings::setPosition(const char* playlist, uint16_t track) {
-    if (!mrm::validPlaylistName(playlist) || (track == track_ && strcmp(playlist, playlist_) == 0))
+void Settings::setPosition(const char* playlist, uint16_t track, const char* trackName) {
+    if (!mrm::validPlaylistName(playlist) || (track == track_ && strcmp(playlist, playlist_) == 0 && strcmp(trackName, trackName_) == 0))
         return;
     strlcpy(playlist_, playlist, sizeof(playlist_));
+    strlcpy(trackName_, trackName, sizeof(trackName_));
     track_ = track;
     touch(true);
 }

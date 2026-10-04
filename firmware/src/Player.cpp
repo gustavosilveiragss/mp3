@@ -12,12 +12,14 @@ void Player::reload() {
         return;
     library_.scan();
     playlist_ = 0;
-    library_.playlistIndex(settings_.playlist(), playlist_);
+    const bool restored = library_.playlistIndex(settings_.playlist(), playlist_);
     strlcpy(playlistName_, library_.playlistName(playlist_), sizeof(playlistName_));
     track_ = 0;
     loaded_ = false;
     wantPlay_ = false;
-    if (library_.select(playlist_) && library_.trackCount() > 0)
+    const bool hasTracks = library_.select(playlist_) && library_.trackCount() > 0;
+    // A faixa volta pelo nome (uma passada no cartao); renomeada ou apagada, pelo indice guardado.
+    if (restored && hasTracks && !library_.trackIndex(settings_.trackName(), track_))
         track_ = min<uint16_t>(settings_.track(), library_.trackCount() - 1);
     showTrack();
 }
@@ -165,5 +167,5 @@ void Player::startTrack() {
 }
 
 void Player::remember() {
-    settings_.setPosition(playlistName_, track_);
+    settings_.setPosition(playlistName_, track_, trackName_);
 }
