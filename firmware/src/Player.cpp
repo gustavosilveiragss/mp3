@@ -92,6 +92,7 @@ View Player::view() const {
     v.playlistIndex = playlist_;
     v.playlistCount = library_.playlistCount();
     v.track = trackName_;
+    v.artist = loaded_ ? audio_.artist() : "";
     v.trackIndex = track_;
     v.trackCount = library_.trackCount();
     if (loaded_ && audio_.durationMs() > 0) {

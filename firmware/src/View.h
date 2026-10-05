@@ -61,7 +61,8 @@ struct View {
 
     // Player
     const char* playlist = "";
-    const char* track = ""; // nome do arquivo, com extensao
+    const char* track = "";  // nome do arquivo, com extensao
+    const char* artist = ""; // tag da faixa tocando; vazio esconde a linha
     uint8_t playlistIndex = 0;
     uint8_t playlistPrev = 0;
     uint8_t playlistCount = 0;

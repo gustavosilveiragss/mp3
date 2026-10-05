@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <Mp3Tag.h>
 
 // Saida de audio: acha e conecta fones Bluetooth e toca MP3 por A2DP. Audio.cpp usa o Bluetooth real
 // (mrm::BtSource) e o decoder real (mrm::Mp3Stream, 44,1 e 48 kHz).
@@ -52,6 +53,7 @@ public:
     State state() const { return state_; }
     uint32_t positionMs() const;
     uint32_t durationMs() const { return durationMs_; }
+    const char* artist() const { return artist_; } // da tag da faixa atual; vazio sem tag
 
 private:
     void stopTrack();
@@ -76,5 +78,6 @@ private:
     uint32_t startedAt_ = 0; // so o simulado: millis do inicio da retomada atual
     uint32_t basePos_ = 0;   // so o simulado: posicao acumulada antes da retomada atual
     uint32_t durationMs_ = 0;
+    char artist_[mrm::kMaxArtistLen + 1] = "";
     uint8_t appliedVolume_ = 0xFF; // so o real: ultimo volume passado ao Bluetooth
 };

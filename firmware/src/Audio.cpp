@@ -1,6 +1,7 @@
 #include "Audio.h"
 
 #include <Mp3Probe.h>
+#include <Mp3Tag.h>
 
 #include "Media.h"
 
@@ -43,7 +44,7 @@ size_t readAt(void* ctx, uint32_t offset, uint8_t* buf, size_t n) {
 // Roda no loop a cada troca de faixa. O File do Arduino faz dois stat antes do fopen (~18 ms no
 // LittleFS) e rele 4 KB a cada seek, e o fseek(SEEK_END) do stdio custa ~20 ms; o descritor cru fica
 // com o custo do open.
-bool probe(const char* path, mrm::Mp3Info& info) {
+bool probe(const char* path, mrm::Mp3Info& info, char* artist) {
     char full[mrm::Mp3Stream::kMaxPath + 16];
     snprintf(full, sizeof(full), "%s%s", media::mountPoint(), path);
     int fd = open(full, O_RDONLY);
@@ -51,6 +52,8 @@ bool probe(const char* path, mrm::Mp3Info& info) {
         return false;
     const off_t size = lseek(fd, 0, SEEK_END);
     const bool ok = size > 0 && mrm::probeMp3(readAt, &fd, size, info);
+    if (ok)
+        mrm::readMp3Artist(readAt, &fd, size, artist);
     close(fd);
     return ok;
 }
@@ -208,7 +211,8 @@ void Audio::update() {
 bool Audio::play(const char* path) {
     stopTrack();       // fecha a faixa anterior: o cartao tem um slot de arquivo so, e o probe abre outro
     mrm::Mp3Info info; // (o Finished some junto: se a faixa nao abrir, o Player nao entra em laco de saltos)
-    const bool ok = connected() && probe(path, info) && stream.start(path, info);
+    artist_[0] = '\0';
+    const bool ok = connected() && probe(path, info, artist_) && stream.start(path, info);
     AUD_EV("play ", ok, " bt=", static_cast<int>(bt.state()), " ring=", stream.buffered(), " ", path);
     if (!ok)
         return false; // ilegivel, nao e MP3 ou taxa que o decoder nao converte (so 44,1 e 48 kHz)

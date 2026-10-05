@@ -4,6 +4,7 @@
 
 #include "Marmot.h"
 #include "MarmotIcon.h"
+#include <Mp3Tag.h>
 #include <PathRules.h>
 #include "Text.h"
 #include "UiDraw.h"
@@ -21,6 +22,10 @@ constexpr uint32_t kScrollPxPerSec = 36;
 constexpr uint32_t kVolumeEdgeMs = 180;
 constexpr uint32_t kVolumeTweenMs = 140;
 constexpr int16_t kVolumePanel = 20;
+constexpr int16_t kTitleY = 18;
+constexpr int16_t kTitleYWithArtist = 12;
+constexpr int16_t kArtistY = 28;
+constexpr int16_t kControlsTopWithArtist = 41;
 constexpr uint32_t kPlaylistMs = 2400;
 constexpr uint32_t kWipeMs = 220;
 constexpr uint32_t kRollMs = 450;
@@ -63,18 +68,28 @@ void stripExtension(const char* name, char* out, size_t size) {
         out[len - 4] = '\0';
 }
 
+int16_t slideOffset(const View& v, uint32_t now) {
+    return int16_t((1 - eased(now, v.trackAt, kSlideMs)) * kW);
+}
+
+// Com artista o titulo sobe e os controles descem para abrir a linha dele.
+int16_t titleY(const View& v) {
+    return v.artist[0] ? kTitleYWithArtist : kTitleY;
+}
+
 void title(Panel& o, const View& v, uint32_t now) {
     char name[mrm::kMaxTrackLen + 1];
     stripExtension(v.track, name, sizeof(name));
     o.setFont(ArialMT_Plain_16);
 
     const uint32_t elapsed = v.trackAt ? now - v.trackAt : kSlideMs;
-    const int16_t slide = int16_t((1 - eased(now, v.trackAt, kSlideMs)) * kW);
+    const int16_t slide = slideOffset(v, now);
     const int16_t width = textWidth(o, name);
     constexpr int16_t kRoom = kW - 4;
+    const int16_t y = titleY(v);
 
     if (width <= kRoom) {
-        centered(o, ArialMT_Plain_16, kW / 2 + slide, 18, name);
+        centered(o, ArialMT_Plain_16, kW / 2 + slide, y, name);
         return;
     }
     const uint32_t overflow = width - kRoom;
@@ -83,12 +98,29 @@ void title(Panel& o, const View& v, uint32_t now) {
     const uint32_t shift = t < kHoldMs ? 0 : t < kHoldMs + travel ? (t - kHoldMs) * kScrollPxPerSec / 1000
                                                                   : overflow;
     o.setTextAlignment(TEXT_ALIGN_LEFT);
-    o.drawText(2 - int16_t(shift) + slide, 18, name);
+    o.drawText(2 - int16_t(shift) + slide, y, name);
+}
+
+// Nome mais largo que a tela termina em "..." (corta em caractere inteiro, nao no meio do UTF-8).
+void artistLine(Panel& o, const View& v, uint32_t now) {
+    if (!v.artist[0])
+        return;
+    char text[mrm::kMaxArtistLen + 4];
+    strlcpy(text, v.artist, sizeof(text));
+    o.setFont(ArialMT_Plain_10);
+    size_t len = strlen(text);
+    while (textWidth(o, text) > kW - 4 && len > 0) {
+        --len;
+        while (len > 0 && (text[len] & 0xC0) == 0x80)
+            --len;
+        strlcpy(text + len, "...", sizeof(text) - len);
+    }
+    centered(o, ArialMT_Plain_10, kW / 2 + slideOffset(v, now), kArtistY, text);
 }
 
 void controls(Panel& o, const View& v, uint32_t now) {
-    constexpr int16_t kTop = 38;
-    constexpr int16_t kBase = 50;
+    const int16_t kTop = v.artist[0] ? kControlsTopWithArtist : 38;
+    const int16_t kBase = kTop + 12;
     const bool playing = v.mode == View::Mode::Playing;
 
     if (playing)
@@ -201,6 +233,7 @@ void playlistChange(Panel& o, const View& v, uint32_t now, const Locale& t) {
 void home(Panel& o, const View& v, uint32_t now, const Locale& t) {
     topbar(o, v, now, v.playlist);
     title(o, v, now);
+    artistLine(o, v, now);
     controls(o, v, now);
     if (active(now, v.volumeAt, View::kVolumeVisibleMs + kVolumeEdgeMs))
         volumePanel(o, v, now);
