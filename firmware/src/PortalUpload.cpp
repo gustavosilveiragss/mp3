@@ -35,6 +35,7 @@ void Portal::closeConnection() {
 // Responde e fecha o socket sem ler o resto do corpo.
 void Portal::reject(int code, const char* error) {
     PDBG(mrm::log("portal recusa ", code, " ", error));
+    mrm::crashlog::note("up recusado %d %s", code, error);
     abandonUpload(error, false);
     sendError(code, error);
     closeConnection();
@@ -59,6 +60,7 @@ void Portal::rejectSink(mrm::UploadSink::Error error) {
 // A+B no meio de um arquivo: larga o arquivo e a conexão sem resposta.
 void Portal::cancelUpload() {
     PDBG(portaldebug::event("cancelado (A+B ou parado)", sink_.written()));
+    mrm::crashlog::note("up cancelado bytes=%lu", static_cast<unsigned long>(sink_.written()));
     sink_.abort();
     abandonUpload(kErrAborted, true);
 }
@@ -185,6 +187,8 @@ void Portal::finishUpload() {
 
     changed_ = true;
     strlcpy(last_, kLastOk, sizeof(last_));
+    mrm::crashlog::note("up ok bytes=%lu heap=%u", static_cast<unsigned long>(progress_.size),
+                        static_cast<unsigned>(ESP.getFreeHeap()));
 
     char body[kUploadBodyMax];
     snprintf(body, sizeof(body), "{\"ok\":1,\"sr\":%lu,\"free\":%llu}", static_cast<unsigned long>(sniff_.sampleRate()),

@@ -1,5 +1,6 @@
 #include "Audio.h"
 
+#include <CrashLog.h>
 #include <Mp3Probe.h>
 #include <Mp3Tag.h>
 
@@ -25,6 +26,7 @@ namespace {
 constexpr uint32_t kSwitchGapMs = 800; // o fone anterior precisa soltar o link antes do próximo connect
 constexpr uint8_t kBtMaxVolume = 127;
 constexpr uint8_t kPercentMax = 100;
+constexpr const char* kLinkNames[] = {"off", "idle", "conectando", "conectado"};
 
 int32_t feed(uint8_t* data, int32_t len) {
     AUD_FEED_START(len);
@@ -213,6 +215,9 @@ void Audio::update() {
     else
         link_ = Link::Idle;
 
+    if (link_ != was)
+        mrm::crashlog::note("bt link %s", kLinkNames[static_cast<uint8_t>(link_)]);
+
     if (link_ == Link::Idle)
         peer_[0] = '\0';
 
@@ -227,6 +232,8 @@ void Audio::update() {
 
     if (state_ == State::Playing && stream.finished()) {
         state_ = State::Finished;
+        mrm::crashlog::note("fim da faixa");
+
         AUD_EV("fim da faixa");
     }
 
@@ -251,6 +258,7 @@ bool Audio::play(const char* path, uint32_t startMs) {
     }
 
     const bool started = ok && stream.start(path, info);
+    mrm::crashlog::note("play %s sr=%lu", started ? "ok" : "falhou", static_cast<unsigned long>(info.sampleRate));
     AUD_EV("play ", started, " bt=", static_cast<int>(bt.state()), " ring=", stream.buffered(), " ", path);
 
     if (!started)

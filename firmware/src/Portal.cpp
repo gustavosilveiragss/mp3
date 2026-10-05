@@ -61,6 +61,7 @@ void Portal::begin(const char* ssid) {
 
     wifi_.begin();
     active_ = true;
+    mrm::crashlog::note("portal on heap=%u", static_cast<unsigned>(ESP.getFreeHeap()));
 }
 
 void Portal::handle() {
@@ -93,6 +94,7 @@ void Portal::end() {
     wifi_.end();
     clearProgress();
     active_ = false;
+    mrm::crashlog::note("portal off minheap=%u", static_cast<unsigned>(ESP.getMinFreeHeap()));
 }
 
 bool Portal::doneRequested() const {

@@ -35,6 +35,7 @@ void Portal::registerRoutes(WebServer& server) {
     server.on("/api/state", HTTP_GET, [this] { sendState(); });
     server.on("/api/tracks", HTTP_GET, [this] { sendTracks(); });
     server.on("/api/loose", HTTP_GET, [this] { sendLoose(); });
+    server.on("/log", HTTP_GET, [this] { sendLog(); });
 
     server.on(kUploadUri, HTTP_POST, [this] { finishUpload(); }, [this] { onRaw(); });
     server.on("/api/delete", HTTP_POST, [this] { doDelete(); }, [this] { onRaw(); });
@@ -49,6 +50,25 @@ void Portal::registerRoutes(WebServer& server) {
         server.on(UriGlob("/*"), method, [this] { notFound(); }, [this] { onRaw(); });
         server.on(UriGlob("*"), method, [this] { notFound(); }, [this] { onRaw(); });
     }
+}
+
+// Eventos guardados na memória RTC, inclusive os da sessão anterior ao último reset.
+void Portal::sendLog() {
+    if (server_->hostHeader() != kHost)
+        return sendError(kForbidden, kErrIo);
+
+    touch();
+    server_->sendHeader("Cache-Control", "no-store");
+    server_->setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server_->send(kOk, kTextType, "");
+
+    char line[mrm::crashlog::kWidth + 1];
+    for (uint8_t i = 0; mrm::crashlog::copy(i, line, sizeof(line) - 1); ++i) {
+        strlcat(line, "\n", sizeof(line));
+        server_->sendContent(line);
+    }
+
+    server_->sendContent("");
 }
 
 void Portal::sendJson(int code, const char* body) {

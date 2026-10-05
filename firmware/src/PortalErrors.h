@@ -30,6 +30,7 @@ inline constexpr char kErrNumber[] = "num";
 inline constexpr char kLastOk[] = "ok";
 inline constexpr char kHdrType[] = "Content-Type";
 inline constexpr char kJsonType[] = "application/json";
+inline constexpr char kTextType[] = "text/plain";
 
 inline constexpr size_t kLastMax = sizeof(kErrAborted); // "last" guarda o maior dos textos acima
 static_assert(sizeof(kErrNotMp3) <= kLastMax && sizeof(kErrExists) <= kLastMax, "last_ precisa caber todo texto");

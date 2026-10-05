@@ -126,6 +126,7 @@ private:
     void sendState();
     void sendTracks();
     void sendLoose();
+    void sendLog();
     void writePlaylists(mrm::JsonOut& json);
     void doDelete();
     void doRename();

@@ -76,11 +76,16 @@ void portalTick(void*) {
 
 void setup() {
     Serial.begin(115200);
+    crashlog::begin();
+    crashlog::dump(Serial);
+
     display.begin();
     led.begin();
     keys.begin();
 
     const bool mediaOk = media::begin();
+    crashlog::note("sd %s", mediaOk ? "ok" : "falhou");
+
     settings.begin();
     locale.set(settings.lang());
 
