@@ -38,7 +38,8 @@ inline constexpr mrm::Text UnlockHint{"A+B 3x desbloqueia", "A+B 3x unlocks"};
 
 inline constexpr mrm::Text Bluetooth{"Bluetooth", "Bluetooth"};
 inline constexpr mrm::Text PickDevice{"Escolher dispositivo", "Choose device"};
-inline constexpr mrm::Text ForgetDevice{"Esquecer fone", "Forget device"};
+inline constexpr mrm::Text ForgetDevice{"Esquecer dispositivos", "Forget all devices"};
+inline constexpr mrm::Text ForgottenToast{"Todos esquecidos", "All forgotten"};
 inline constexpr mrm::Text NoDevice{"nenhum", "none"};
 inline constexpr mrm::Text Devices{"Dispositivos Bluetooth", "Bluetooth devices"};
 inline constexpr mrm::Text ScanAgain{"buscar de novo", "scan again"};

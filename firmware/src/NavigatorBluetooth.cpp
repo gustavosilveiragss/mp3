@@ -20,6 +20,7 @@ void Navigator::selectBluetooth() {
         audio_.setEnabled(radioOn);
 
         settings_.setDevice("");
+        showToast(View::Toast::Forgotten);
         break;
     }
 

@@ -75,6 +75,21 @@ static const gfx::Icon& lockIcon(View::Toast toast) {
     return toast == View::Toast::Unlocked ? art::kLockOpen : art::kLockClosed;
 }
 
+static const mrm::Text& toastText(View::Toast toast) {
+    switch (toast) {
+    case View::Toast::NoDevice:
+        return Txt::NoDeviceTitle;
+    case View::Toast::Forgotten:
+        return Txt::ForgottenToast;
+    case View::Toast::Locked:
+        return Txt::LockedToast;
+    case View::Toast::Unlocked:
+        return Txt::UnlockedToast;
+    default:
+        return Txt::UnlockHint;
+    }
+}
+
 void toast(Panel& o, const View& v, uint32_t now, const Locale& t) {
     if (v.toast == View::Toast::None || !active(now, v.toastAt, View::kToastHoldMs + View::kToastEdgeMs))
         return;
@@ -85,29 +100,24 @@ void toast(Panel& o, const View& v, uint32_t now, const Locale& t) {
         quiet > View::kToastHoldMs ? gfx::easeInOut(progressOf(quiet - View::kToastHoldMs, View::kToastEdgeMs)) : 0;
     const int16_t y = kToastRestY - int16_t(max(enter, leave) * (kToastRestY + kToastBoxH));
 
-    const bool noDevice = v.toast == View::Toast::NoDevice;
-    const mrm::Text* key = &Txt::UnlockHint;
-    if (noDevice)
-        key = &Txt::NoDeviceTitle;
-    else if (v.toast == View::Toast::Locked)
-        key = &Txt::LockedToast;
-    else if (v.toast == View::Toast::Unlocked)
-        key = &Txt::UnlockedToast;
+    const bool bare = v.toast == View::Toast::NoDevice || v.toast == View::Toast::Forgotten;
+
+    const mrm::Text& key = toastText(v.toast);
 
     o.setFont(ArialMT_Plain_10);
 
-    const int16_t pad = noDevice ? kToastPadBare : kToastPadWithLock; // sem cadeado no aviso de dispositivo
-    const int16_t width = textWidth(o, t(*key)) + pad;
+    const int16_t pad = bare ? kToastPadBare : kToastPadWithLock; // sem cadeado nos avisos de dispositivo
+    const int16_t width = textWidth(o, t(key)) + pad;
     const int16_t x = (kW - width) / 2;
 
     clear(o, x, y, width, kToastBoxH);
     o.drawRect(x, y, width, kToastBoxH);
 
-    if (!noDevice)
+    if (!bare)
         gfx::drawIcon(o, x + kToastLock.x, y + kToastLock.y, lockIcon(v.toast));
 
     o.setTextAlignment(TEXT_ALIGN_LEFT);
-    o.drawText(x + pad / 2 + (noDevice ? 0 : kToastLockShift), y + kToastTextDy, t(*key));
+    o.drawText(x + pad / 2 + (bare ? 0 : kToastLockShift), y + kToastTextDy, t(key));
 }
 
 } // namespace ui

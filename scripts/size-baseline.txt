@@ -1,2 +1,2 @@
 ram_bytes=87012
-flash_bytes=1627072
+flash_bytes=1627168

@@ -104,11 +104,15 @@ void Audio::scan() {
 
     AUD_EV("scan pedido bt=", static_cast<int>(bt.state()));
 
-    if (switching_ || bt.state() == mrm::BtSource::State::Connecting)
-        disconnect(); // varredura com tentativa de conexão em curso só atrapalha as duas
+    using S = mrm::BtSource::State;
+    const S s = bt.state();
+    const bool linked = s == S::Connecting || s == S::Connected || s == S::Streaming;
+
+    if (switching_ || linked)
+        disconnect(); // escolher dispositivo é intencional: o fone atual cai e a música para
 
     if (!bt.scan())
-        return; // com fone conectado a lista fica como está
+        return;
 
     deviceCount_ = 0;
     scanning_ = true;

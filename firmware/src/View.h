@@ -26,7 +26,8 @@ struct View {
                                  Locked,
                                  Unlocked,
                                  LockedHint,
-                                 NoDevice };
+                                 NoDevice,
+                                 Forgotten };
 
     enum class Mode : uint8_t { Splash,
                                 Connecting,
