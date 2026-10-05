@@ -2,6 +2,7 @@
 // 32); so passam 33 pacotes/s. Para carregar os 344 frames/s o pacote precisa levar kPacketFrames frames:
 // bitpool = ((mtu - overhead) / kPacketFrames - 13) / 2 (frame SBC joint stereo = 13 + 2 x bitpool bytes).
 // Precisa de -Wl,--wrap=bta_av_co_audio_get_sbc_config (platformio.ini).
+#include <Arduino.h> // define ESP_ARDUINO_VERSION_MAJOR, usado abaixo
 #include <BtSource.h>
 
 #if MRM_HAS_BT_SOURCE
@@ -16,6 +17,14 @@ constexpr int kMinBitpool = 10;
 
 uint8_t gSbcBitpool = 0;
 uint16_t gSbcMtu = 0;
+
+// Arduino-ESP32 3.x devolve a memoria do Bluetooth no boot se ninguem declarar uso (a pilha nao sobe).
+// So o classico: btInUse() seguraria tambem a memoria do BLE e deixaria o heap apertado para o A2DP.
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+extern "C" bool btClassicInUse() {
+    return true;
+}
+#endif
 
 extern "C" bool __real_bta_av_co_audio_get_sbc_config(SbcCie* cfg, uint16_t* minMtu);
 

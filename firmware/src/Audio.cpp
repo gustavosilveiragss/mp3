@@ -80,6 +80,9 @@ void Audio::setEnabled(bool on) {
     peer_[0] = '\0';
     stopTrack();
     if (on) {
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+        bt.set_ssp_enabled(true); // IDF 5: sem isso o IO cap nao e definido e o pareamento do fone falha
+#endif
         bt.start();
         link_ = bt.state() == mrm::BtSource::State::Off ? Link::Off : Link::Idle;
         scanning_ = bt.state() == mrm::BtSource::State::Scanning;

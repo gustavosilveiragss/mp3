@@ -9,7 +9,11 @@
 #include <marmota.h>
 
 #include "Library.h"
+#include "PortalDebug.h"
 #include "PortalPage.h"
+#include "UploadPipe.h"
+
+static_assert(HTTP_RAW_BUFLEN <= HTTP_UPLOAD_BUFLEN, "HTTPRaw::buf tem o tamanho de HTTP_UPLOAD_BUFLEN: os dois -D andam juntos");
 
 inline constexpr char kTmpPath[] = "/music/.up.tmp"; // sobra de upload interrompido, apagada no begin
 
@@ -64,7 +68,7 @@ private:
     static constexpr uint32_t kMaxActionBody = 256;
     static constexpr uint32_t kStallMs = 12000;     // upload sem um byte por esse tempo e abandonado
     static constexpr uint32_t kRecvTimeoutS = 5;    // pausa do celular sem abortar o upload
-    static constexpr uint32_t kTailTimeoutMs = 750; // fim do corpo: o core espera encher 1436 B ou estourar o timeout; folga para o RTO do celular
+    static constexpr uint32_t kTailTimeoutMs = 750; // fim do corpo: o core espera encher HTTP_RAW_BUFLEN ou estourar o timeout; folga para o RTO do celular
 
     struct Request {
         char query[kQueryMax];
@@ -126,7 +130,7 @@ private:
     char ssid_[33] = "";
     mrm::WifiPortal wifi_;
     mrm::Mp3Sniff sniff_;
-    mrm::UploadSink sink_;
+    UploadPipe pipe_;
     WebServer* server_ = nullptr;
 
     Progress progress_;

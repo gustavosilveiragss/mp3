@@ -141,6 +141,7 @@ footer a{color:var(--tx)}
   <footer>
     <button class="b gh" id="done" data-t="done"></button>
     <small data-t="keep"></small>
+    <small data-t="fast"></small>
     <small><span data-t="open"></span> <a href="http://192.168.4.1" target="_blank">http://192.168.4.1</a></small>
   </footer>
 </main>
@@ -155,7 +156,8 @@ const T = {
     askT: 'a pasta "$1" já existe na biblioteca', askE: 'adicionar à existente "$1"', askN: 'criar nova "$1"',
     n_free: 'nova playlist "$1"', n_dup: '"$1" já existe', n_bad: 'sem / \\ : * ? " < > |', n_long: 'máximo de $2 caracteres', n_full: 'limite de $3 playlists',
     cancel: 'cancelar', clear: 'limpar', stop: 'parar', lib: 'biblioteca', count: '$1 de $2 playlists', none: 'biblioteca vazia. crie uma playlist ou envie uma pasta.',
-    done: 'concluir', keep: 'mantenha a tela ligada enquanto envia', open: 'o seletor não abriu? abra no navegador:',
+    done: 'concluir', keep: 'mantenha a tela ligada enquanto envia',
+    fast: 'com pressa ou com muita música? pelo wi-fi o envio é mais calminho, é o limite do aparelho. o jeito mais rápido é tirar o cartão microSD, ligar no computador e copiar as músicas direto nele (dentro da pasta music, uma pasta por playlist).', open: 'o seletor não abriu? abra no navegador:',
     ready: 'pronto', sending: 'enviando $1 de $2', off: 'sem conexão · tentando de novo',
     fin: 'concluído · $1 enviadas, $2 puladas, $3 com erro',
     space: '$1 de $2 usados · $3 livres', spaceQ: ' · fila $1', noFit: ' · não cabe, faltam $1',
@@ -174,7 +176,8 @@ const T = {
     askT: 'folder "$1" is already in the library', askE: 'add to existing "$1"', askN: 'create new "$1"',
     n_free: 'new playlist "$1"', n_dup: '"$1" already exists', n_bad: 'no / \\ : * ? " < > |', n_long: 'at most $2 characters', n_full: 'limit of $3 playlists',
     cancel: 'cancel', clear: 'clear', stop: 'stop', lib: 'library', count: '$1 of $2 playlists', none: 'empty library. create a playlist or send a folder.',
-    done: 'finish', keep: 'keep the screen on while sending', open: 'picker did not open? open in the browser:',
+    done: 'finish', keep: 'keep the screen on while sending',
+    fast: 'in a hurry, or sending a lot of music? over wi-fi it is a bit slow, that is the device\'s limit. the fastest way is to take out the microSD card, plug it into a computer and copy the songs straight onto it (inside the music folder, one folder per playlist).', open: 'picker did not open? open in the browser:',
     ready: 'ready', sending: 'sending $1 of $2', off: 'no connection · retrying',
     fin: 'done · $1 sent, $2 skipped, $3 failed',
     space: '$1 of $2 used · $3 free', spaceQ: ' · queue $1', noFit: ' · does not fit, $1 short',

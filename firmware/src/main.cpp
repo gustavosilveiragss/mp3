@@ -51,9 +51,9 @@ void readKeys() {
     navigator.handle(action);
 }
 
-void drawFrame() {
+void drawFrame(uint32_t frameMs = Ui::kFrameMs) {
     const uint32_t now = millis();
-    if (displayOff || now - lastDraw < (navigator.gameRunning() ? mrm::game::Game::kTickMs : Ui::kFrameMs))
+    if (displayOff || now - lastDraw < (navigator.gameRunning() ? mrm::game::Game::kTickMs : frameMs))
         return;
     lastDraw = now;
     screen.draw(navigator.view(), now);
@@ -66,10 +66,13 @@ void drawFrame() {
 #define MP3_DEBUG_STACK 0 // 1: loga a folga de pilha do tick do Portal no serial
 #endif
 
+// Um quadro do OLED custa ~13 ms de I2C com a janela TCP fechada: durante o envio a barra anda a 2 Hz.
+constexpr uint32_t kPortalFrameMs = 500;
+
 void portalTick(void*) {
     readKeys();
     led.heartbeat();
-    drawFrame();
+    drawFrame(kPortalFrameMs);
 #if MP3_DEBUG_STACK
     static uint32_t stackAt;
     if (millis() - stackAt >= 1000) {

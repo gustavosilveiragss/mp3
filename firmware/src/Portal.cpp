@@ -52,7 +52,7 @@ Portal::Portal(fs::FS& fs, const mrm::Locale& locale)
     : fs_(fs)
     , locale_(locale)
     , wifi_(wifiConfig(ssid_))
-    , sink_(sinkConfig(&sniff_)) {
+    , pipe_(sinkConfig(&sniff_)) {
     wifi_.onRoutes([this](WebServer& server) { registerRoutes(server); });
 }
 
@@ -69,6 +69,7 @@ void Portal::begin(const char* ssid) {
     clients_ = 0;
     idleAt_ = clientsAt_ = millis();
     wifi_.begin();
+    pipe_.begin();
     active_ = true;
 }
 
@@ -91,8 +92,9 @@ void Portal::end() {
     if (!active_)
         return;
     if (req_.upload)
-        sink_.abort();
+        pipe_.abort();
     req_.upload = false;
+    pipe_.end();
     wifi_.end();
     progress_.active = progress_.more = false;
     active_ = false;

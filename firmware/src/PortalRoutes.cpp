@@ -3,6 +3,7 @@
 #include "Library.h"
 #include "Media.h"
 #include "Portal.h"
+#include "PortalClient.h"
 #include "PortalQuery.h"
 
 namespace {
@@ -12,23 +13,6 @@ constexpr char kHdrMrm[] = "X-Mrm";
 constexpr char kHdrQuery[] = "X-Q"; // query do POST: o caminho raw do WebServer nao a entrega
 constexpr char kHdrType[] = "Content-Type";
 constexpr char kHdrLength[] = "Content-Length";
-
-// O WebServer le o corpo do raw com o timeout do seu _currentClient (1 s) e client() devolve uma
-// copia, entao setTimeout/stop por ali nao chegam ao socket. O membro e protected: o truque do
-// ponteiro de membro em instanciacao explicita acessa sem alterar a lib.
-struct ClientTag {
-    using Type = WiFiClient WebServer::*;
-    friend Type clientMember(ClientTag);
-};
-template <typename Tag, typename Tag::Type Member>
-struct Reach {
-    friend typename Tag::Type clientMember(Tag) { return Member; }
-};
-template struct Reach<ClientTag, &WebServer::_currentClient>;
-
-WiFiClient& clientOf(WebServer& server) {
-    return server.*clientMember(ClientTag{});
-}
 
 uint32_t parseUint(const char* text) {
     char* end = nullptr;
@@ -98,13 +82,14 @@ void Portal::notFound() {
 // Responde e fecha o socket sem ler o resto do corpo; o motivo fica em last para a pagina
 // consultar quando a conexao cair. O timeout zerado faz o laco do WebServer desistir na hora.
 void Portal::reject(int code, const char* error) {
+    PDBG(mrm::log("portal recusa ", code, " ", error));
     strlcpy(last_, error, sizeof(last_));
     req_.upload = false;
     progress_.active = progress_.more = false;
     dropNewDir();
     sendError(code, error);
     req_.replied = true;
-    WiFiClient& client = clientOf(*server_);
+    HttpClient& client = clientOf(*server_);
     client.stop();
     client.setTimeout(0);
 }
@@ -127,13 +112,14 @@ void Portal::rejectSink(mrm::UploadSink::Error error) {
 
 // A+B no meio de um arquivo: larga o arquivo e a conexao sem resposta.
 void Portal::cancelUpload() {
-    sink_.abort();
+    PDBG(portaldebug::event("cancelado (A+B ou parado)", pipe_.written()));
+    pipe_.abort();
     strlcpy(last_, "aborted", sizeof(last_));
     req_.upload = false;
     req_.replied = true;
     progress_.active = progress_.more = false;
     dropNewDir();
-    WiFiClient& client = clientOf(*server_);
+    HttpClient& client = clientOf(*server_);
     client.stop();
     client.setTimeout(0);
 }
@@ -172,9 +158,10 @@ void Portal::onRaw() {
             writeRaw(raw);
         return;
     case RAW_ABORTED:
+        PDBG(portaldebug::event("raw abortado", raw.totalSize));
         req_.started = false;
         if (req_.upload) {
-            sink_.abort();
+            pipe_.abort();
             strlcpy(last_, "aborted", sizeof(last_));
             req_.upload = false;
             dropNewDir();
@@ -197,7 +184,7 @@ void Portal::startRaw() {
     }
     if (stop_)
         return reject(503, "aborted");
-    clientOf(*server_).setTimeout(kRecvTimeoutS);
+    setRecvTimeout(clientOf(*server_), kRecvTimeoutS);
     if (server_->header(kHdrMrm) != "1" || server_->hostHeader() != kHost)
         return reject(403, "io");
     if (server_->method() != HTTP_POST)
@@ -215,8 +202,7 @@ void Portal::startRaw() {
         reject(413, "limit");
 }
 
-// O core pede 1436 B por leitura e espera encher ou estourar o timeout: na ultima leitura, que nunca
-// enche, isso custaria kRecvTimeoutS por arquivo. Faltando menos que um bloco, o timeout encurta.
+// A ultima leitura (menor que HTTP_RAW_BUFLEN) nunca enche e custaria kRecvTimeoutS por arquivo: o timeout encurta.
 void Portal::armTimeout(uint32_t remaining) {
     if (remaining < HTTP_RAW_BUFLEN)
         clientOf(*server_).Stream::setTimeout(kTailTimeoutMs);
@@ -240,11 +226,12 @@ void Portal::startUpload() {
     if (full)
         return reject(409, "limit");
     sniff_.reset();
-    const mrm::UploadSink::Error error = sink_.start(fs_, {dir, req_.track, req_.length});
+    const mrm::UploadSink::Error error = pipe_.start(fs_, {dir, req_.track, req_.length});
     req_.newDir = isNew; // o start cria a pasta
     if (error != mrm::UploadSink::Error::None)
         return rejectSink(error);
     req_.upload = true;
+    PDBG(portaldebug::start());
     readProgress();
 }
 
@@ -269,15 +256,18 @@ void Portal::readProgress() {
 void Portal::writeRaw(const HTTPRaw& raw) {
     if (!req_.upload)
         return; // corpo de um POST que nao e upload: descartado
-    const mrm::UploadSink::Error error = sink_.write(raw.buf, raw.currentSize);
+    PDBG(const uint32_t t0 = micros());
+    const mrm::UploadSink::Error error = pipe_.write(raw.buf, raw.currentSize);
+    PDBG(portaldebug::sd(t0, raw.currentSize));
     if (error != mrm::UploadSink::Error::None)
         return rejectSink(error);
-    progress_.sent = sink_.written();
+    progress_.sent = pipe_.written();
     progress_.totalSent = req_.base + progress_.sent;
     progress_.at = millis();
     touch();
     if (tick_)
         tick_(tickCtx_);
+    PDBG(portaldebug::tick());
     if (stop_)
         return cancelUpload();
     armTimeout(req_.length > raw.totalSize ? req_.length - raw.totalSize : 0);
@@ -288,8 +278,9 @@ void Portal::finishUpload() {
         return;
     if (!req_.upload)
         return sendError(400, "io");
-    const mrm::UploadSink::Error error = sink_.finish();
-    if (error == mrm::UploadSink::Error::Rejected && sink_.written() != req_.length)
+    const mrm::UploadSink::Error error = pipe_.finish();
+    PDBG(portaldebug::report(pipe_.stackFree()));
+    if (error == mrm::UploadSink::Error::Rejected && pipe_.written() != req_.length)
         return reject(400, "io");
     if (error != mrm::UploadSink::Error::None)
         return rejectSink(error);
