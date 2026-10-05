@@ -3,8 +3,7 @@
 #include <Arduino.h>
 
 // Saida de audio: acha e conecta fones Bluetooth e toca MP3 por A2DP. Audio.cpp usa o Bluetooth real
-// (mrm::BtSource) e o decoder real (mrm::Mp3Stream, so 44,1 kHz). AudioSim.cpp (env mp3sim) simula
-// tudo, inclusive fones falsos, para testar a UI sem fone.
+// (mrm::BtSource) e o decoder real (mrm::Mp3Stream, 44,1 e 48 kHz).
 class Audio {
 public:
     static constexpr uint8_t kMaxDevices = 8;
