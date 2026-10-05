@@ -10,6 +10,7 @@
 
 #include "AudioCore.h"
 #include "AudioDebug.h"
+#include "Seek.h"
 
 namespace audio {
 mrm::BtSource bt;
@@ -52,7 +53,7 @@ bool probe(const char* path, mrm::Mp3Info& info, char* artist) {
         return false;
     const off_t size = lseek(fd, 0, SEEK_END);
     const bool ok = size > 0 && mrm::probeMp3(readAt, &fd, size, info);
-    if (ok)
+    if (ok && artist)
         mrm::readMp3Artist(readAt, &fd, size, artist);
     close(fd);
     return ok;
@@ -208,16 +209,44 @@ void Audio::update() {
 #endif
 }
 
-bool Audio::play(const char* path) {
+bool Audio::play(const char* path, uint32_t startMs) {
     stopTrack();       // fecha a faixa anterior: o cartao tem um slot de arquivo so, e o probe abre outro
     mrm::Mp3Info info; // (o Finished some junto: se a faixa nao abrir, o Player nao entra em laco de saltos)
     artist_[0] = '\0';
-    const bool ok = connected() && probe(path, info, artist_) && stream.start(path, info);
-    AUD_EV("play ", ok, " bt=", static_cast<int>(bt.state()), " ring=", stream.buffered(), " ", path);
-    if (!ok)
+    const bool ok = connected() && strlen(path) < sizeof(path_) && probe(path, info, artist_);
+    if (ok) {
+        info_ = info;
+        durationMs_ = info.durationMs;
+        strlcpy(path_, path, sizeof(path_));
+        baseMs_ = seek::clampMs(startMs, durationMs_);
+        info.dataOffset = mrm::mp3OffsetAt(info, baseMs_);
+    }
+    const bool started = ok && stream.start(path, info);
+    AUD_EV("play ", started, " bt=", static_cast<int>(bt.state()), " ring=", stream.buffered(), " ", path);
+    if (!started)
         return false; // ilegivel, nao e MP3 ou taxa que o decoder nao converte (so 44,1 e 48 kHz)
-    durationMs_ = info.durationMs;
     state_ = State::Playing;
+    return true;
+}
+
+uint32_t Audio::durationOf(const char* path) {
+    mrm::Mp3Info info;
+    return probe(path, info, nullptr) ? info.durationMs : 0;
+}
+
+// Troca so o ponto de leitura: o stream fecha e reabre o arquivo no byte novo e o ring velho e descartado.
+bool Audio::seek(uint32_t ms) {
+    if (state_ != State::Playing && state_ != State::Paused)
+        return false;
+    mrm::Mp3Info at = info_;
+    const uint32_t target = seek::clampMs(ms, durationMs_);
+    at.dataOffset = mrm::mp3OffsetAt(info_, target);
+    if (!stream.start(path_, at))
+        return false;
+    baseMs_ = target;
+    if (state_ == State::Paused)
+        stream.pause();
+    AUD_EV("seek ", target);
     return true;
 }
 
@@ -238,6 +267,6 @@ void Audio::resume() {
 }
 
 uint32_t Audio::positionMs() const {
-    const uint32_t ms = uint64_t(stream.playedFrames()) * 1000 / mrm::Mp3Stream::kRate;
+    const uint32_t ms = baseMs_ + uint64_t(stream.playedFrames()) * 1000 / mrm::Mp3Stream::kRate;
     return min(ms, durationMs_);
 }

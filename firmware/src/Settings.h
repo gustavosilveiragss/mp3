@@ -29,7 +29,9 @@ public:
     const char* playlist() const { return playlist_; }
     const char* trackName() const { return trackName_; }
     uint16_t track() const { return track_; }
-    void setPosition(const char* playlist, uint16_t track, const char* trackName);
+    uint32_t positionSec() const { return positionSec_; } // dentro da faixa; so vale para trackName()
+    // Mudar so os segundos grava so a NVS (periodico enquanto toca); trocar de faixa grava tambem o config.json.
+    void setPosition(const char* playlist, uint16_t track, const char* trackName, uint32_t seconds = 0);
 
     mrm::Lang lang() const { return lang_; }
     void setLang(mrm::Lang lang);
@@ -65,6 +67,7 @@ private:
     char playlist_[mrm::kMaxPlaylistLen + 1] = "";
     uint16_t track_ = 0;
     char trackName_[mrm::kMaxTrackLen + 1] = "";
+    uint32_t positionSec_ = 0;
     mrm::Lang lang_ = mrm::Lang::PtBr;
     uint16_t best_[kGames]{};
     uint8_t seen_ = 0;

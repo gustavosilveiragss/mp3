@@ -24,6 +24,7 @@ public:
     bool wantsPlay() const { return playing(); }
     const Library& library() const { return library_; }
     uint8_t playlistIndex() const { return playlist_; }
+    bool seeking() const { return seeking_; }
     void choosePlaylist(uint8_t index);
     View view() const;
 
@@ -38,6 +39,12 @@ private:
     void changeVolume(int delta);
     void startTrack();
     void remember();
+    void handleSeek(Keypad::Action action);
+    void seekBy(int direction, bool hold);
+    void commitSeek();
+    void updateSeek(uint32_t now);
+    uint32_t durationMs();
+    uint32_t positionMs() const { return loaded_ ? audio_.positionMs() : startMs_; }
     void showTrack();
 
     Library& library_;
@@ -52,6 +59,16 @@ private:
     uint16_t track_ = 0;
     char playlistName_[mrm::kMaxPlaylistLen + 1] = ""; // copias: a Library so guarda uma janela de nomes
     char trackName_[mrm::kMaxTrackLen + 1] = "";
+
+    uint32_t startMs_ = 0;        // onde a faixa comeca quando for carregada (posicao guardada ou busca sem fone)
+    uint32_t idleDurationMs_ = 0; // duracao da faixa ainda nao carregada, lida ao buscar nela (0 = nao lida)
+    uint32_t lastPosMs_ = 0;      // ultima posicao vista com a faixa carregada: o fone pode cair e levar o Audio
+    uint32_t savedAt_ = 0;
+
+    bool seeking_ = false; // modo busca
+    bool seekDirty_ = false;
+    uint32_t seekMs_ = 0; // destino ainda nao aplicado
+    uint32_t seekAt_ = 0; // ultima tecla do modo
 
     uint32_t trackAt_ = 0;
     uint32_t volumeAt_ = 0;      // ultimo passo de volume

@@ -42,7 +42,7 @@ public:
         bHeld_ = b;
     } // teclas cruas, para os jogos
 
-    bool menuInput() const { return screen_ != Screen::Home && screen_ != Screen::Splash; }
+    bool menuInput() const { return screen_ == Screen::Home ? player_.seeking() : screen_ != Screen::Splash; } // busca tambem: toque na hora
     bool wifiRunning() const { return wifiOn_; }
     bool gameRunning() const { return screen_ == Screen::Play && games_.running(); }
     bool idle() const; // display pode apagar
@@ -50,7 +50,7 @@ public:
     bool toastActive() const;
     bool wantsDisplay() const;
     // Com o bloqueio ligado, A+B na Home e contado em vez de agir na hora (nao acorda a tela).
-    bool countsChords() const { return settings_.lockEnabled() && screen_ == Screen::Home && !locked_; }
+    bool countsChords() const { return settings_.lockEnabled() && screen_ == Screen::Home && !locked_ && !player_.seeking(); }
     void wake(); // uma tecla acordou o display: conta como atividade
     View view() const;
 

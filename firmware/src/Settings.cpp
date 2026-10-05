@@ -65,6 +65,7 @@ void Settings::loadHot() {
         char trackName[sizeof(trackName_)];
         if (p.getString("tn", trackName, sizeof(trackName)) && mrm::validTrackName(trackName))
             strlcpy(trackName_, trackName, sizeof(trackName_));
+        positionSec_ = p.getUInt("pos", 0);
     }
     if (p.isKey("dev"))
         p.getString("dev", device_, sizeof(device_));
@@ -88,6 +89,8 @@ void Settings::saveHot() {
     char oldTrack[sizeof(trackName_)];
     if (!p.getString("tn", oldTrack, sizeof(oldTrack)) || strcmp(oldTrack, trackName_) != 0)
         p.putString("tn", trackName_);
+    if (p.getUInt("pos", UINT32_MAX) != positionSec_)
+        p.putUInt("pos", positionSec_);
     if (!p.getString("dev", old, sizeof(old)) || strcmp(old, device_) != 0)
         p.putString("dev", device_);
     uint8_t bda[6];
@@ -139,9 +142,18 @@ void Settings::setVolume(uint8_t volume) {
     touch(true);
 }
 
-void Settings::setPosition(const char* playlist, uint16_t track, const char* trackName) {
-    if (!mrm::validPlaylistName(playlist) || (track == track_ && strcmp(playlist, playlist_) == 0 && strcmp(trackName, trackName_) == 0))
+void Settings::setPosition(const char* playlist, uint16_t track, const char* trackName, uint32_t seconds) {
+    if (!mrm::validPlaylistName(playlist))
         return;
+    const bool sameTrack = track == track_ && strcmp(playlist, playlist_) == 0 && strcmp(trackName, trackName_) == 0;
+    if (sameTrack && seconds == positionSec_)
+        return;
+    positionSec_ = seconds;
+    if (sameTrack) { // so os segundos: o config.json nao muda
+        hot_ = true;
+        changedAt_ = millis();
+        return;
+    }
     strlcpy(playlist_, playlist, sizeof(playlist_));
     strlcpy(trackName_, trackName, sizeof(trackName_));
     track_ = track;

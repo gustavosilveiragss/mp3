@@ -70,6 +70,7 @@ struct View {
     uint16_t trackCount = 0;
     uint8_t progress = 0; // 0..100
     uint16_t positionSec = 0;
+    bool seekMode = false; // A e B andam na faixa; positionSec e o destino
     uint8_t volume = 0;
     uint8_t volumeBefore = 0;
     uint32_t trackAt = 0;

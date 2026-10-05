@@ -130,18 +130,27 @@ void controls(Panel& o, const View& v, uint32_t now) {
         o.fillRect(8, kTop + 1, 3, kBase - kTop);
     }
 
-    for (uint8_t i = 0; i < 6; ++i) { // equalizador: so mexe tocando
-        const int16_t h = playing ? 2 + int16_t((sinf(now / (140.0f + i * 37) + i * 1.7f) + 1) * 6) : 2;
-        o.fillRect(20 + i * 5, kBase - h, 3, h);
-    }
-
-    char index[16];
-    char time[8];
-    snprintf(index, sizeof(index), "%u/%u", v.trackIndex + 1, v.trackCount);
-    snprintf(time, sizeof(time), "%u:%02u", v.positionSec / 60, v.positionSec % 60);
+    char time[12];
+    const uint32_t hours = v.positionSec / 3600;
+    if (hours > 0)
+        snprintf(time, sizeof(time), "%lu:%02u:%02u", static_cast<unsigned long>(hours), v.positionSec / 60 % 60, v.positionSec % 60);
+    else
+        snprintf(time, sizeof(time), "%u:%02u", v.positionSec / 60, v.positionSec % 60);
     o.setFont(ArialMT_Plain_10);
     o.setTextAlignment(TEXT_ALIGN_LEFT);
-    o.drawText(58, kTop + 2, index);
+    if (v.seekMode) { // A volta e B avanca; o tempo a direita e o destino
+        o.drawText(16, kTop + 2, "A <<");
+        o.drawText(52, kTop + 2, ">> B");
+    } else {
+        for (uint8_t i = 0; i < 6; ++i) { // equalizador: so mexe tocando
+            const int16_t h = playing ? 2 + int16_t((sinf(now / (140.0f + i * 37) + i * 1.7f) + 1) * 6) : 2;
+            o.fillRect(20 + i * 5, kBase - h, 3, h);
+        }
+        char index[16];
+        snprintf(index, sizeof(index), "%u/%u", v.trackIndex + 1, v.trackCount);
+        if (58 + textWidth(o, index) + 4 + textWidth(o, time) < kW - 2) // faixa de horas e muitas faixas: so o tempo
+            o.drawText(58, kTop + 2, index);
+    }
     o.setTextAlignment(TEXT_ALIGN_RIGHT);
     o.drawText(kW - 2, kTop + 2, time);
 

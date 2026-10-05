@@ -80,17 +80,19 @@ void Keypad::updateIdle(uint32_t now, bool aChanged, bool bChanged) {
         if (changed && !key->down) {
             if (key->held)
                 key->held = false;
-            else if (isA && instant_)
-                push(Action::PlayPause);
-            else if (isA)
-                ++key->taps;
+            else if (instant_)
+                push(isA ? Action::PlayPause : Action::Next);
             else
-                push(Action::Next);
+                ++key->taps;
         }
     }
     if (a_.taps > 0 && !a_.down && now - a_.releasedAt >= kDoubleGapMs) {
         push(a_.taps == 1 ? Action::PlayPause : Action::Prev);
         a_.taps = 0;
+    }
+    if (b_.taps > 0 && !b_.down && now - b_.releasedAt >= kDoubleGapMs) {
+        push(b_.taps == 1 ? Action::Seek : Action::Next);
+        b_.taps = 0;
     }
 }
 

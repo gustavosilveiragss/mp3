@@ -91,8 +91,9 @@ void Navigator::update() {
 
 void Navigator::handleHome(Keypad::Action action) {
     using Action = Keypad::Action;
-    const bool needsDevice = action == Action::PlayPause || action == Action::Next || action == Action::Prev;
-    if (action == Action::NextPlaylist && settings_.lockEnabled())
+    const bool seeking = player_.seeking(); // A, B e A+B tem outro papel e valem sem fone
+    const bool needsDevice = !seeking && (action == Action::PlayPause || action == Action::Next || action == Action::Prev);
+    if (action == Action::NextPlaylist && settings_.lockEnabled() && !seeking)
         countChord(); // com o bloqueio ligado A+B espera a contagem: 3 toques travam, 1 ou 2 trocam de playlist
     else if (action == Action::OpenMenu)
         enter(Screen::Config);

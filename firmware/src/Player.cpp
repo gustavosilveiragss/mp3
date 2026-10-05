@@ -1,5 +1,11 @@
 #include "Player.h"
 
+#include "Seek.h"
+
+namespace {
+constexpr uint32_t kSaveMs = 15000; // posicao dentro da faixa vai para a NVS a cada tanto: o desligar e pela chave
+}
+
 void Player::begin(bool mediaOk) {
     mediaOk_ = mediaOk;
     audio_.setVolume(settings_.volume());
@@ -15,13 +21,21 @@ void Player::reload() {
     const bool restored = library_.playlistIndex(settings_.playlist(), playlist_);
     strlcpy(playlistName_, library_.playlistName(playlist_), sizeof(playlistName_));
     track_ = 0;
+    startMs_ = idleDurationMs_ = 0;
     loaded_ = false;
     wantPlay_ = false;
+    seeking_ = seekDirty_ = false;
     const bool hasTracks = library_.select(playlist_) && library_.trackCount() > 0;
     // A faixa volta pelo nome (uma passada no cartao); renomeada ou apagada, pelo indice guardado.
-    if (restored && hasTracks && !library_.trackIndex(settings_.trackName(), track_))
-        track_ = min<uint16_t>(settings_.track(), library_.trackCount() - 1);
+    if (restored && hasTracks) {
+        if (library_.trackIndex(settings_.trackName(), track_))
+            startMs_ = settings_.positionSec() * 1000; // a posicao so vale para a mesma faixa
+        else
+            track_ = min<uint16_t>(settings_.track(), library_.trackCount() - 1);
+    }
     showTrack();
+    if (startMs_ > 0)
+        durationMs(); // com a posicao guardada a barra ja sai preenchida, antes do play
 }
 
 void Player::showTrack() {
@@ -31,11 +45,24 @@ void Player::showTrack() {
 void Player::update() {
     audio_.update();
     if (!audio_.connected()) { // sem dispositivo a faixa se perde, e o play nao fica "armado"
+        if (loaded_) {         // mas a posicao e a duracao ficam para quando o fone voltar
+            startMs_ = lastPosMs_;
+            idleDurationMs_ = audio_.durationMs();
+        }
         loaded_ = false;
         wantPlay_ = false;
     }
     if (audio_.state() == Audio::State::Finished)
         step(+1);
+    const uint32_t now = millis();
+    updateSeek(now);
+    if (loaded_ && audio_.connected()) {
+        lastPosMs_ = audio_.positionMs();
+        if (audio_.state() == Audio::State::Playing && now - savedAt_ >= kSaveMs) {
+            savedAt_ = now;
+            remember();
+        }
+    }
     if (!wantPlay_ || !audio_.connected())
         return;
     if (loaded_ && audio_.state() == Audio::State::Paused)
@@ -48,6 +75,10 @@ void Player::handle(Keypad::Action action) {
     using Action = Keypad::Action;
     if (action == Action::None)
         return;
+    if (seeking_) {
+        handleSeek(action);
+        return;
+    }
     if (action == Action::NextPlaylist && library_.playlistCount() > 1) {
         nextPlaylist(); // vale mesmo com a playlist atual vazia
         return;
@@ -74,6 +105,10 @@ void Player::handle(Keypad::Action action) {
     case Action::NextPlaylist:
         nextPlaylist();
         break;
+    case Action::Seek:
+        seeking_ = true;
+        seekAt_ = millis();
+        break;
     default:
         break;
     }
@@ -95,10 +130,12 @@ View Player::view() const {
     v.artist = loaded_ ? audio_.artist() : "";
     v.trackIndex = track_;
     v.trackCount = library_.trackCount();
-    if (loaded_ && audio_.durationMs() > 0) {
-        v.positionSec = audio_.positionMs() / 1000;
-        v.progress = min<uint32_t>(100, audio_.positionMs() * 100ull / audio_.durationMs());
-    }
+    const uint32_t ms = seekDirty_ ? seekMs_ : positionMs();
+    const uint32_t duration = loaded_ ? audio_.durationMs() : idleDurationMs_;
+    v.seekMode = seeking_;
+    v.positionSec = min<uint32_t>(ms / 1000, UINT16_MAX);
+    if (duration > 0)
+        v.progress = min<uint32_t>(100, ms * 100ull / duration);
 
     if (!mediaOk_)
         v.mode = View::Mode::NoMedia;
@@ -115,8 +152,10 @@ void Player::togglePlay() {
 
 void Player::togglePlayIf(bool wanted) {
     wantPlay_ = wanted;
-    if (!wanted)
+    if (!wanted) {
         audio_.pause();
+        remember();
+    }
 }
 
 void Player::step(int direction) {
@@ -126,6 +165,8 @@ void Player::step(int direction) {
     track_ = (track_ + count + direction) % count;
     trackAt_ = stamp();
     loaded_ = false;
+    startMs_ = idleDurationMs_ = 0;
+    seekDirty_ = false;
     wantPlay_ = true;
     showTrack();
     remember();
@@ -147,6 +188,8 @@ void Player::choosePlaylist(uint8_t index) {
     showTrack();
     trackAt_ = playlistAt_ = stamp();
     loaded_ = false;
+    startMs_ = idleDurationMs_ = 0;
+    seekDirty_ = false;
     remember();
 }
 
@@ -162,11 +205,11 @@ void Player::changeVolume(int delta) {
 
 void Player::startTrack() {
     char path[dirlist::kPath];
-    loaded_ = library_.trackPath(trackName_, path, sizeof(path)) && audio_.play(path);
+    loaded_ = library_.trackPath(trackName_, path, sizeof(path)) && audio_.play(path, startMs_);
     if (!loaded_)
         wantPlay_ = false; // faixa ilegivel: para em vez de pular em loop
 }
 
 void Player::remember() {
-    settings_.setPosition(playlistName_, track_, trackName_);
+    settings_.setPosition(playlistName_, track_, trackName_, positionMs() / 1000);
 }

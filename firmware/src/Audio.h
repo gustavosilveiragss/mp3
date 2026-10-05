@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <Mp3Probe.h>
 #include <Mp3Tag.h>
 
 // Saida de audio: acha e conecta fones Bluetooth e toca MP3 por A2DP. Audio.cpp usa o Bluetooth real
@@ -45,7 +46,9 @@ public:
     const Device* devices() const { return devices_; }
     uint8_t deviceCount() const { return deviceCount_; }
 
-    bool play(const char* path); // false se sem fone ou arquivo ilegivel
+    bool play(const char* path, uint32_t startMs = 0); // false se sem fone ou arquivo ilegivel
+    uint32_t durationOf(const char* path);             // 0 se ilegivel; so com a faixa parada (o cartao tem um slot)
+    bool seek(uint32_t ms);                            // dentro da faixa atual, tocando ou pausada
     void pause();
     void resume();
     void setVolume(uint8_t percent) { volume_ = percent; }
@@ -73,11 +76,12 @@ private:
     uint32_t connectAt_ = 0;
     uint32_t switchAt_ = 0; // so o real: quando o link anterior caiu e a troca de fone pode seguir
     bool switching_ = false;
-    uint32_t dialAt_ = 0;    // so o real: quando o ultimo connect comecou
-    bool repaired_ = false;  // so o real: ja apagamos o pareamento nesta tentativa
-    uint32_t startedAt_ = 0; // so o simulado: millis do inicio da retomada atual
-    uint32_t basePos_ = 0;   // so o simulado: posicao acumulada antes da retomada atual
+    uint32_t dialAt_ = 0;   // so o real: quando o ultimo connect comecou
+    bool repaired_ = false; // so o real: ja apagamos o pareamento nesta tentativa
     uint32_t durationMs_ = 0;
+    uint32_t baseMs_ = 0; // instante em que o stream (que conta desde o ultimo start) comecou
+    mrm::Mp3Info info_;
+    char path_[128] = ""; // = Mp3Stream::kMaxPath
     char artist_[mrm::kMaxArtistLen + 1] = "";
     uint8_t appliedVolume_ = 0xFF; // so o real: ultimo volume passado ao Bluetooth
 };

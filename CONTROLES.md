@@ -15,13 +15,14 @@ Decisão (2026-10-01): o player tem 2 botões, A e B, no lugar de 5. Todas as a�
 | A toque | play/pause | 250 ms depois de soltar (espera um possível toque duplo) |
 | A toque duplo | faixa anterior | 250 ms depois do segundo toque |
 | A segurar | volume − | aos 400 ms, repete a cada 150 ms |
-| B toque | próxima faixa | ao soltar, sem espera |
+| B toque | modo busca (ver abaixo) | 250 ms depois de soltar (espera um possível toque duplo) |
+| B toque duplo | próxima faixa | 250 ms depois do segundo toque |
 | B segurar | volume + | aos 400 ms, repete a cada 150 ms |
 | A+B toque | próxima playlist | ao soltar os dois (ambos soltos em menos de 1,5 s) |
 | A+B segurar 1,5 s | abre a Config (Wi-Fi, Bluetooth, idioma) | aos 1,5 s, ainda segurando |
 
 Por que assim:
-- Ações frequentes ficam em toque único. A pausa tem 250 ms de atraso, aceitável; a próxima faixa não tem atraso, e pular duas faixas é dois toques em B (B não tem toque duplo, justamente para isso).
+- Ações frequentes ficam em toque único. A pausa tem 250 ms de atraso, aceitável; a próxima faixa não tem atraso, e pular uma faixa é B duplo (também 250 ms de atraso).
 - Ações raras e que interrompem a música (trocar de playlist, config) exigem os dois botões, o que quase não acontece por acidente.
 - A é o pino de acordar do `lightSleep` (ver `PLANO-3-DIAS.md`): pausa longa dorme e A acorda.
 
@@ -31,9 +32,29 @@ Por que assim:
 2. Combinação A+B: a segunda tecla chega até 200 ms depois da primeira, com nenhuma das duas em "segurar". A janela (`kChordWindowMs`) é estimativa: medir na bancada com o caso de rolar o dedo de A para B. Toque pendente de A é descartado ao entrar na combinação (a combinação vence).
 3. Durante a combinação nada mais dispara. `OpenMenu` exige as duas seguradas sem interrupção por 1,5 s (soltar uma e reapertar cancela). `NextPlaylist` sai quando as duas são soltas com até 300 ms de diferença e o Wi-Fi não disparou. Uma tecla solta cedo e a outra segurada além disso não dá nada.
 4. Fora da combinação as teclas são independentes. Segurar A e tocar B dá Next; segurar as duas por separado (B depois de 200 ms) alterna os dois volumes. Não é caso de uso e é risco aceito: nada impede uma tecla de agir enquanto a outra segura.
-5. Toque de B nunca cancela o toque pendente de A (e vice-versa não existe: B não tem toque pendente).
+5. Toque de B nunca cancela o toque pendente de A (e vice-versa).
 6. Segurar além de 400 ms no meio de uma rajada de A descarta a rajada e vira volume.
 7. Eventos saem por fila de 4; o `loop()` consome um por volta. `repeatAt` é recalculado a partir de `now`, então um loop lento não gera rajada atrasada.
+
+## Modo busca (dentro da faixa, para podcasts)
+
+B toque entra (B duplo pula de faixa); a Home troca equalizador e nº da faixa por `A <<  >> B` e o tempo à direita vira o destino. A música continua tocando até o destino ser aplicado.
+
+| Gesto no modo busca | Ação |
+|---|---|
+| A toque | volta 10 s |
+| B toque | avança 10 s |
+| A segurar | volta 30 s a cada repetição (150 ms) |
+| B segurar | avança 30 s a cada repetição |
+| A+B toque | sai do modo |
+| 4 s sem tecla | sai sozinho |
+
+- No modo os toques são instantâneos (sem esperar o duplo), como nos menus; volume e faixa voltam ao sair.
+- O destino só é aplicado 350 ms depois da última tecla (reabre o arquivo no byte novo, `Audio::seek`); segurar soma passos sem reabrir.
+- Buscar além do fim cai 3 s antes dele (ouve o fim e vai para a próxima). Sem fone conectado a busca vale para quando a faixa carregar.
+- Com o bloqueio de botões ligado, A+B dentro do modo só sai dele (não conta os 3 toques).
+- Posição guardada: a NVS recebe os segundos a cada 15 s tocando, ao pausar, ao buscar e ao trocar de faixa (zera). A chave desliga sem aviso, então no pior caso perde 15 s. Ao ligar, a faixa guardada volta nesse ponto (só se achada pelo nome) e o tempo aparece parado na tela até dar play.
+- Byte do instante: CBR pela taxa média (exato); VBR pela tabela do Xing (`mrm::mp3OffsetAt`, fmk). Erro medido em 132 MP3 reais: mediana 0,4 s, pior 14 s num podcast VBR de 45 min (a tabela tem passo de 1/256 do arquivo).
 
 ## Telas e menus (`Navigator`)
 
@@ -57,7 +78,7 @@ Por que assim:
 | Jogo: pausa e fim | pausa ou fim da partida | desce | confirma (Continuar, Como jogar, Sair, Jogar de novo) | continua (pausa) ou sai (fim) |
 | Idioma | Config | desce | escolhe e volta | volta |
 
-Nos menus o toque de A sai na hora (sem esperar o toque duplo) e a barra de topo mostra as instruções no lugar do status. O Home mostra o status: Bluetooth, Wi-Fi e bateria (quando houver).
+Nos menus o toque de A e de B saem na hora (sem esperar o toque duplo) e a barra de topo mostra as instruções no lugar do status. O Home mostra o status: Bluetooth, Wi-Fi e bateria (quando houver).
 
 Armazenamento: tela só de leitura, sem status. Com cartão SD (build `MP3_SD=1` e cartão montado) mostra "Cartão SD", livre e total e a barra de uso; sem ele, "Sem cartão SD" e a "Memória interna" (LittleFS) com livre, total, barra e quantidade de faixas (se couber). Tamanhos em B/KB/MB/GB com uma casa (vírgula em pt-BR, ponto em en); se "livres de" não couber, usa "livre / total". O FS é lido só ao entrar na tela e ao desligar o portal.
 
@@ -104,7 +125,7 @@ Snake, Impacto, Breakout, Torre, Ritmo e Órbita, todos com 2 botões. O tutoria
 
 - Pausar tem 250 ms de atraso (espera o duplo). `kDoubleGapMs` sai do teste de bancada: se incomodar, baixar até ~200 ms.
 - Volume não tem passo único: o menor movimento é segurar 400 ms (um passo) e a direção só muda soltando e segurando a outra tecla.
-- Prev só por A duplo; playlist só "próxima" (circular). Sem aleatório, repetir ou buscar dentro da faixa.
+- Prev só por A duplo; playlist só "próxima" (circular). Sem aleatório nem repetir.
 - Desligar fica na chave SS-12D00. Pausa longa entra em `lightSleep` e A acorda.
 - O período do `loop()` precisa ficar em ~15 ms ou menos para debounce, janela de 200 ms e repeat valerem. O `main` redesenha o OLED a cada 50 ms e não usa `delay`. Medido: `loop max` de 1 a 4 ms. Se passar de 15 ms com áudio, SD e Bluetooth reais, ler o `Keypad` em tarefa ou timer separado.
 - Gesto de fronteira: um hold que passa de 400 ms na mesma volta em que o dedo solta vira toque. Com loop rápido o efeito é desprezível.

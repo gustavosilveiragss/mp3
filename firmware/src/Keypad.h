@@ -12,7 +12,8 @@ public:
                                   VolDown,
                                   VolUp,
                                   NextPlaylist,
-                                  OpenMenu };
+                                  OpenMenu,
+                                  Seek }; // B toque: entra no modo busca
 
     Keypad(uint8_t pinA, uint8_t pinB)
         : a_{pinA}
