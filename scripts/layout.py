@@ -23,18 +23,16 @@ def width(text, size):
     return sum(f[4 + ((ord(c) if 32 <= ord(c) <= 255 else 63) - f[2]) * 4 + 3] for c in text)
 
 
-def table(path, enum):
-    text = open(path).read()
-    names = [n.strip() for n in re.search(rf"enum class {enum} : uint16_t \{{(.*?)Count", text, re.S).group(1).split(",") if n.strip()]
-    pairs = re.findall(r'\{"((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)"\}', text)
-    return dict(zip(names, pairs))
+def table(path):
+    pairs = re.findall(r'constexpr (?:mrm::)?Text (\w+)\{"((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)"\}', open(path).read())
+    return {name: (pt, en) for name, pt, en in pairs}
 
 
-# Os textos dos jogos moram no fmk (tabelas da base e dos jogos de 2 botoes).
+# Os textos dos jogos moram no fmk, junto das dicas compartilhadas.
 fmk = next(iter(glob.glob(f"{root}/firmware/.pio/libdeps/*/marmota-fmk/src/game/..")), f"{root}/../marmota-fmk/src")
-T = table(f"{root}/firmware/src/Text.h", "Txt")
-G = table(f"{fmk}/game/GameText.h", "Str")
-G.update(table(f"{fmk}/game/twobtn/Text.h", "Str"))
+hints = table(f"{fmk}/Locale.h")
+T = {**hints, **table(f"{root}/firmware/src/Text.h")}
+G = {**hints, **table(f"{fmk}/game/GameText.h"), **table(f"{fmk}/game/twobtn/Text.h")}
 
 W = 128
 failures = []

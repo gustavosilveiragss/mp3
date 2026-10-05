@@ -4,7 +4,7 @@
 
 #include <game/twobtn/Games.h>
 
-// Posicao de cada linha nos menus, para o Navigator agir e a Ui desenhar na mesma ordem.
+// Posição de cada linha nos menus, para o Navigator agir e a Ui desenhar na mesma ordem.
 namespace menu {
 
 constexpr uint8_t kConfigPlaylists = 0;
@@ -27,7 +27,7 @@ constexpr uint8_t kWifiToggle = 0;
 constexpr uint8_t kWifiBack = 1;
 constexpr uint8_t kWifiRows = 2;
 
-// Lista de dispositivos: as acoes ficam no topo para os indices nao andarem quando a busca acha um.
+// Lista de dispositivos: as ações ficam no topo para os índices não andarem quando a busca acha um.
 constexpr uint8_t kPickerRescan = 0;
 constexpr uint8_t kPickerBack = 1;
 constexpr uint8_t kPickerFirstDevice = 2;

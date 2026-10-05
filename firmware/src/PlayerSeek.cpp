@@ -2,34 +2,34 @@
 
 #include "Seek.h"
 
-namespace {
-constexpr uint32_t kCommitMs = 350; // sem tecla por isso, o destino e aplicado (segurar vai somando sem reabrir o arquivo)
-constexpr uint32_t kModeMs = 4000;  // sem tecla por isso, o modo busca fecha
-} // namespace
-
-// Modo busca: A anda para tras e B para frente (toque 10 s, segurar 30 s por repeticao);
+// Modo busca: A anda para trás e B para frente (toque 10 s, segurar 30 s por repetição).
 // A+B ou 4 s parado saem.
 void Player::handleSeek(Keypad::Action action) {
     using Action = Keypad::Action;
+
     switch (action) {
     case Action::PlayPause:
         seekBy(-1, false);
         break;
+
     case Action::Next:
         seekBy(+1, false);
         break;
     case Action::VolDown:
         seekBy(-1, true);
         break;
+
     case Action::VolUp:
         seekBy(+1, true);
         break;
+
     case Action::NextPlaylist:
     case Action::Seek:
     case Action::OpenMenu:
         commitSeek();
-        seeking_ = false;
+        seek_.active = false;
         break;
+
     default:
         break;
     }
@@ -38,45 +38,56 @@ void Player::handleSeek(Keypad::Action action) {
 void Player::seekBy(int direction, bool hold) {
     const uint32_t now = millis();
     const uint32_t step = hold ? seek::kHoldMs : seek::kTapMs;
-    if (!seekDirty_)
-        seekMs_ = positionMs(); // a musica andou desde o ultimo destino
-    seekMs_ = seek::clampMs(int64_t(seekMs_) + direction * int64_t(step), durationMs());
-    seekDirty_ = true;
-    seekAt_ = now;
+
+    if (!seek_.dirty)
+        seek_.targetMs = positionMs(); // a música andou desde o último destino
+
+    seek_.targetMs = seek::clampMs(int64_t(seek_.targetMs) + direction * int64_t(step), durationMs());
+
+    seek_.dirty = true;
+    seek_.lastKeyAt = now;
 }
 
-// Sem faixa carregada (pausada desde o boot ou sem fone) a duracao vem do arquivo, uma vez por faixa.
+// Sem faixa carregada (pausada desde o boot ou sem fone) a duração vem do arquivo, uma vez por faixa.
 uint32_t Player::durationMs() {
     if (loaded_)
         return audio_.durationMs();
+
     char path[dirlist::kPath];
-    if (idleDurationMs_ == 0 && library_.trackPath(trackName_, path, sizeof(path)))
-        idleDurationMs_ = audio_.durationOf(path);
-    return idleDurationMs_;
+    if (resume_.idleDurationMs == 0 && library_.trackPath(trackName_, path, sizeof(path)))
+        resume_.idleDurationMs = audio_.durationOf(path);
+
+    return resume_.idleDurationMs;
 }
 
 void Player::commitSeek() {
-    if (!seekDirty_)
+    if (!seek_.dirty)
         return;
-    if (loaded_ && !audio_.seek(seekMs_)) {
-        seekAt_ = millis(); // fila do stream cheia: o destino fica e tenta de novo
+
+    if (loaded_ && !audio_.seek(seek_.targetMs)) {
+        seek_.lastKeyAt = millis(); // fila do stream cheia: o destino fica e tenta de novo
         return;
     }
-    seekDirty_ = false;
+
+    seek_.dirty = false;
+
     if (!loaded_)
-        startMs_ = seekMs_; // sem faixa carregada (sem fone): vale quando ela carregar
-    lastPosMs_ = seekMs_;
+        resume_.startMs = seek_.targetMs; // sem faixa carregada (sem fone): vale quando ela carregar
+
+    resume_.lastPosMs = seek_.targetMs;
     savedAt_ = millis();
     remember();
 }
 
 void Player::updateSeek(uint32_t now) {
-    if (!seeking_)
+    if (!seek_.active)
         return;
-    if (seekDirty_ && now - seekAt_ >= kCommitMs)
+
+    if (seek_.dirty && now - seek_.lastKeyAt >= seek::kCommitDelayMs)
         commitSeek();
-    if (now - seekAt_ >= kModeMs) {
+
+    if (now - seek_.lastKeyAt >= seek::kModeIdleMs) {
         commitSeek();
-        seeking_ = false;
+        seek_.active = false;
     }
 }

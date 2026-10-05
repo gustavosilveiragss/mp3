@@ -11,8 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "firmware/web/portal.html"
 OUT = ROOT / "firmware/src/PortalPage.h"
-MAX_RAW = 32 * 1024
-MAX_GZ = 12 * 1024
+MAX_RAW = 42 * 1024
+MAX_GZ = 14 * 1024
 MAX_LINES = 480
 
 
@@ -65,7 +65,7 @@ def header(gz):
     per = max(16, -(-len(gz) // MAX_LINES))
     rows = [", ".join(f"0x{b:02x}" for b in gz[i:i + per]) + "," for i in range(0, len(gz), per)]
     return (
-        "// Gerado por scripts/page.py a partir de firmware/web/portal.html. Nao editar.\n"
+        "// Gerado por scripts/page.py a partir de firmware/web/portal.html. Não editar.\n"
         "// clang-format off\n"
         "#pragma once\n\n"
         "#include <Arduino.h>\n\n"

@@ -2,3 +2,7 @@
 
 # lista de compras local, nunca commitar
 COMPRAS.md
+
+# Python cache
+__pycache__/
+*.pyc

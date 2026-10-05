@@ -2,40 +2,41 @@
 
 #include "Seek.h"
 
-namespace {
-constexpr uint32_t kSaveMs = 15000; // posicao dentro da faixa vai para a NVS a cada tanto: o desligar e pela chave
-}
-
 void Player::begin(bool mediaOk) {
     mediaOk_ = mediaOk;
     audio_.setVolume(settings_.volume());
     reload();
 }
 
-// Le o cartao de novo (depois do portal mexer nele) e volta para a playlist e faixa guardadas.
+// Lê o cartão de novo (depois do portal mexer nele) e volta para a playlist e faixa guardadas.
 void Player::reload() {
     if (!mediaOk_)
         return;
+
     library_.scan();
     playlist_ = 0;
     const bool restored = library_.playlistIndex(settings_.playlist(), playlist_);
     strlcpy(playlistName_, library_.playlistName(playlist_), sizeof(playlistName_));
+
     track_ = 0;
-    startMs_ = idleDurationMs_ = 0;
+    resume_.clearIdle();
     loaded_ = false;
     wantPlay_ = false;
-    seeking_ = seekDirty_ = false;
+    seek_.active = seek_.dirty = false;
+
     const bool hasTracks = library_.select(playlist_) && library_.trackCount() > 0;
-    // A faixa volta pelo nome (uma passada no cartao); renomeada ou apagada, pelo indice guardado.
+    // A faixa volta pelo nome (uma passada no cartão). Renomeada ou apagada, volta pelo índice guardado.
     if (restored && hasTracks) {
         if (library_.trackIndex(settings_.trackName(), track_))
-            startMs_ = settings_.positionSec() * 1000; // a posicao so vale para a mesma faixa
+            resume_.startMs = settings_.positionSec() * 1000; // a posição só vale para a mesma faixa
         else
             track_ = min<uint16_t>(settings_.track(), library_.trackCount() - 1);
     }
+
     showTrack();
-    if (startMs_ > 0)
-        durationMs(); // com a posicao guardada a barra ja sai preenchida, antes do play
+
+    if (resume_.startMs > 0)
+        durationMs(); // com a posição guardada a barra já sai preenchida, antes do play
 }
 
 void Player::showTrack() {
@@ -44,27 +45,48 @@ void Player::showTrack() {
 
 void Player::update() {
     audio_.update();
-    if (!audio_.connected()) { // sem dispositivo a faixa se perde, e o play nao fica "armado"
-        if (loaded_) {         // mas a posicao e a duracao ficam para quando o fone voltar
-            startMs_ = lastPosMs_;
-            idleDurationMs_ = audio_.durationMs();
-        }
-        loaded_ = false;
-        wantPlay_ = false;
-    }
+    dropTrackIfPhoneGone();
+
     if (audio_.state() == Audio::State::Finished)
         step(+1);
+
     const uint32_t now = millis();
     updateSeek(now);
-    if (loaded_ && audio_.connected()) {
-        lastPosMs_ = audio_.positionMs();
-        if (audio_.state() == Audio::State::Playing && now - savedAt_ >= kSaveMs) {
-            savedAt_ = now;
-            remember();
-        }
+    saveProgress(now);
+    armPlayback();
+}
+
+// Sem dispositivo a faixa se perde e o play não fica "armado". A posição e a duração ficam para quando o fone voltar.
+void Player::dropTrackIfPhoneGone() {
+    if (audio_.connected())
+        return;
+
+    if (loaded_) {
+        resume_.startMs = resume_.lastPosMs;
+        resume_.idleDurationMs = audio_.durationMs();
     }
+
+    loaded_ = false;
+    wantPlay_ = false;
+}
+
+void Player::saveProgress(uint32_t now) {
+    if (!loaded_ || !audio_.connected())
+        return;
+
+    resume_.lastPosMs = audio_.positionMs();
+
+    const bool dueToSave = now - savedAt_ >= kSaveIntervalMs;
+    if (audio_.state() == Audio::State::Playing && dueToSave) {
+        savedAt_ = now;
+        remember();
+    }
+}
+
+void Player::armPlayback() {
     if (!wantPlay_ || !audio_.connected())
         return;
+
     if (loaded_ && audio_.state() == Audio::State::Paused)
         audio_.resume();
     else if (!loaded_)
@@ -73,16 +95,20 @@ void Player::update() {
 
 void Player::handle(Keypad::Action action) {
     using Action = Keypad::Action;
+
     if (action == Action::None)
         return;
-    if (seeking_) {
+
+    if (seek_.active) {
         handleSeek(action);
         return;
     }
+
     if (action == Action::NextPlaylist && library_.playlistCount() > 1) {
         nextPlaylist(); // vale mesmo com a playlist atual vazia
         return;
     }
+
     if (library_.trackCount() == 0)
         return;
 
@@ -90,25 +116,30 @@ void Player::handle(Keypad::Action action) {
     case Action::PlayPause:
         togglePlay();
         break;
+
     case Action::Next:
         step(+1);
         break;
     case Action::Prev:
         step(-1);
         break;
+
     case Action::VolUp:
         changeVolume(+kVolumeStep);
         break;
     case Action::VolDown:
         changeVolume(-kVolumeStep);
         break;
+
     case Action::NextPlaylist:
         nextPlaylist();
         break;
+
     case Action::Seek:
-        seeking_ = true;
-        seekAt_ = millis();
+        seek_.active = true;
+        seek_.lastKeyAt = millis();
         break;
+
     default:
         break;
     }
@@ -116,24 +147,30 @@ void Player::handle(Keypad::Action action) {
 
 View Player::view() const {
     View v;
+
     v.trackAt = trackAt_;
+
     v.volumeAt = volumeAt_;
     v.volumeShownAt = volumeShownAt_;
     v.volumeBefore = volumeBefore_;
     v.playlistAt = playlistAt_;
     v.playlistPrev = playlistFrom_;
+
     v.volume = settings_.volume();
     v.playlist = playlistName_;
     v.playlistIndex = playlist_;
     v.playlistCount = library_.playlistCount();
+
     v.track = trackName_;
     v.artist = loaded_ ? audio_.artist() : "";
     v.trackIndex = track_;
     v.trackCount = library_.trackCount();
-    const uint32_t ms = seekDirty_ ? seekMs_ : positionMs();
-    const uint32_t duration = loaded_ ? audio_.durationMs() : idleDurationMs_;
-    v.seekMode = seeking_;
+
+    const uint32_t ms = seek_.dirty ? seek_.targetMs : positionMs();
+    const uint32_t duration = loaded_ ? audio_.durationMs() : resume_.idleDurationMs;
+    v.seekMode = seek_.active;
     v.positionSec = min<uint32_t>(ms / 1000, UINT16_MAX);
+
     if (duration > 0)
         v.progress = min<uint32_t>(100, ms * 100ull / duration);
 
@@ -143,6 +180,7 @@ View Player::view() const {
         v.mode = View::Mode::Empty;
     else
         v.mode = playing() && audio_.connected() ? View::Mode::Playing : View::Mode::Paused;
+
     return v;
 }
 
@@ -152,6 +190,7 @@ void Player::togglePlay() {
 
 void Player::togglePlayIf(bool wanted) {
     wantPlay_ = wanted;
+
     if (!wanted) {
         audio_.pause();
         remember();
@@ -162,34 +201,37 @@ void Player::step(int direction) {
     const uint16_t count = library_.trackCount();
     if (count == 0)
         return;
-    track_ = (track_ + count + direction) % count;
-    trackAt_ = stamp();
-    loaded_ = false;
-    startMs_ = idleDurationMs_ = 0;
-    seekDirty_ = false;
+
+    selectTrack((track_ + count + direction) % count);
     wantPlay_ = true;
-    showTrack();
-    remember();
 }
 
 void Player::nextPlaylist() {
     choosePlaylist((playlist_ + 1) % library_.playlistCount());
 }
 
-// Troca de playlist: comeca na primeira faixa e segue tocando ou pausado, como estava.
+// Troca de playlist: começa na primeira faixa e segue tocando ou pausado, como estava.
 void Player::choosePlaylist(uint8_t index) {
     if (index >= library_.playlistCount() || index == playlist_)
         return;
+
     playlistFrom_ = playlist_;
     playlist_ = index;
     strlcpy(playlistName_, library_.playlistName(playlist_), sizeof(playlistName_));
+
     library_.select(playlist_);
-    track_ = 0;
+    selectTrack(0);
+    playlistAt_ = trackAt_;
+}
+
+void Player::selectTrack(uint16_t index) {
+    track_ = index;
     showTrack();
-    trackAt_ = playlistAt_ = stamp();
+    trackAt_ = stamp();
+
     loaded_ = false;
-    startMs_ = idleDurationMs_ = 0;
-    seekDirty_ = false;
+    resume_.clearIdle();
+    seek_.dirty = false;
     remember();
 }
 
@@ -198,16 +240,19 @@ void Player::changeVolume(int delta) {
     volumeBefore_ = settings_.volume();
     settings_.setVolume(constrain(int(volumeBefore_) + delta, 0, int(Settings::kMaxVolume)));
     audio_.setVolume(settings_.volume());
-    if (now - volumeAt_ >= View::kVolumeVisibleMs) // painel ja saiu: a animacao de entrada toca de novo
+
+    if (now - volumeAt_ >= View::kVolumeVisibleMs) // painel já saiu: a animação de entrada toca de novo
         volumeShownAt_ = now;
+
     volumeAt_ = now;
 }
 
 void Player::startTrack() {
     char path[dirlist::kPath];
-    loaded_ = library_.trackPath(trackName_, path, sizeof(path)) && audio_.play(path, startMs_);
+    loaded_ = library_.trackPath(trackName_, path, sizeof(path)) && audio_.play(path, resume_.startMs);
+
     if (!loaded_)
-        wantPlay_ = false; // faixa ilegivel: para em vez de pular em loop
+        wantPlay_ = false; // faixa ilegível: para em vez de pular em loop
 }
 
 void Player::remember() {

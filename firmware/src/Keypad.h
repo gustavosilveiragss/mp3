@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-// Duas teclas (pull-up, ativas em LOW) decodificadas em acoes. Mapa de gestos em CONTROLES.md.
+// Duas teclas (pull-up, ativas em LOW) decodificadas em ações. Mapa de gestos em CONTROLES.md.
 class Keypad {
 public:
     enum class Action : uint8_t { None,
@@ -20,11 +20,11 @@ public:
         , b_{pinB} {}
 
     void begin();
-    // Chamar a cada volta do loop. Devolve uma acao por chamada, ou None.
+    // Chamar a cada volta do loop. Devolve uma ação por chamada, ou None.
     Action update();
     // Em menus o toque de A sai na hora, sem esperar um toque duplo.
     void setInstant(bool instant) { instant_ = instant; }
-    // Estado das teclas ja sem ruido, para quem precisa de apertar e soltar em tempo real (jogos).
+    // Estado das teclas já sem ruído, para quem precisa de apertar e soltar em tempo real (jogos).
     bool aDown() const { return a_.down; }
     bool bDown() const { return b_.down; }
 

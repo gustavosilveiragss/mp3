@@ -2,10 +2,10 @@
 
 #include "UiDraw.h"
 
-// Telas de menu: barra de instrucoes no topo, titulo e uma lista rolavel.
+// Telas de menu: barra de instruções no topo, título e uma lista rolável.
 namespace ui {
 
-// Wrapper que le o cursor da View; Row, Menu e Hint vem do fmk.
+// Wrapper que lê o cursor da View. Row, Menu e Hint vêm do fmk.
 void menuScreen(mrm::Panel& o, const View& v, uint32_t now, const Menu& m);
 
 void config(mrm::Panel& o, const View& v, uint32_t now, const mrm::Locale& t);

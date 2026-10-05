@@ -4,8 +4,8 @@
 
 #include "DirScan.h"
 
-// Janela deslizante sobre os nomes de uma pasta: so os kSlots em volta do cursor ficam na RAM,
-// o resto e lido do cartao quando o cursor chega perto. Cada nome carrega um valor auxiliar (contagem de faixas).
+// Janela deslizante sobre os nomes de uma pasta: só os kSlots em volta do cursor ficam na RAM,
+// o resto e lido do cartão quando o cursor chega perto. Cada nome carrega um valor auxiliar (contagem de faixas).
 class DirWindow {
 public:
     static constexpr uint8_t kSlots = 8;
@@ -16,14 +16,15 @@ public:
 
     void open(const char* dir); // conta e esvazia a janela
     uint16_t total() const { return total_; }
-    // Os ponteiros e a referencia valem ate a proxima consulta, que pode recarregar a janela: quem precisa guardar copia.
+    // Ponteiros e referência valem até a próxima consulta, que pode recarregar a janela: guarde cópia.
     const char* name(uint16_t index);                      // vazio fora de [0, total)
-    bool indexOf(const char* name, uint16_t& index) const; // posicao de um nome que existe
-    uint16_t& aux(uint16_t index);                         // valor da linha, kUnknown ate alguem preencher
+    bool indexOf(const char* name, uint16_t& index) const; // posição de um nome que existe
+    uint16_t& aux(uint16_t index);                         // valor da linha, kUnknown até alguém preencher
 
 private:
     int slot(uint16_t index) const;
     void fill(uint16_t start);
+    void keepAux(const char (*fresh)[dirlist::kName], uint8_t got, uint16_t* freshAux) const;
     void load(const char* bound, bool forward, uint16_t first);
 
     const bool dirs_;

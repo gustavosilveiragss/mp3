@@ -6,7 +6,7 @@ constexpr uint32_t kDebounceMs = 30;
 constexpr uint32_t kHoldMs = 400;
 constexpr uint32_t kRepeatMs = 150;
 constexpr uint32_t kDoubleGapMs = 250;
-constexpr uint32_t kChordWindowMs = 200; // rolar o dedo de uma tecla a outra tem de cair em combinacao, nao em volume
+constexpr uint32_t kChordWindowMs = 200; // rolar o dedo de uma tecla a outra tem de cair em combinação, não em volume
 constexpr uint32_t kChordHoldMs = 1500;
 constexpr uint32_t kChordReleaseMs = 300; // as duas teclas soltas quase juntas
 
@@ -23,8 +23,10 @@ bool Keypad::debounce(Key& key, uint32_t now) {
         key.raw = level;
         key.rawAt = now;
     }
+
     if (now - key.rawAt < kDebounceMs || key.down == key.raw)
         return false;
+
     key.down = key.raw;
     (key.down ? key.downAt : key.releasedAt) = now;
     return true;
@@ -47,6 +49,7 @@ Keypad::Action Keypad::update() {
         chordAt_ = now;
         chordFired_ = false;
         chordBroken_ = false;
+
         a_.taps = b_.taps = 0;
     }
 
@@ -57,9 +60,11 @@ Keypad::Action Keypad::update() {
 
     if (count_ == 0)
         return Action::None;
+
     const Action out = queue_[head_];
     head_ = (head_ + 1) % 4;
     --count_;
+
     return out;
 }
 
@@ -73,11 +78,13 @@ void Keypad::updateIdle(uint32_t now, bool aChanged, bool bChanged) {
             key->taps = 0;
             key->repeatAt = now;
         }
+
         if (key->held && key->down && static_cast<int32_t>(now - key->repeatAt) >= 0) {
             key->repeatAt = now + kRepeatMs;
             push(isA ? Action::VolDown : Action::VolUp);
         }
-        if (changed && !key->down) {
+
+        if (changed && !key->down) { // lint: ok cadeia única de gestos da tecla
             if (key->held)
                 key->held = false;
             else if (instant_)
@@ -86,10 +93,12 @@ void Keypad::updateIdle(uint32_t now, bool aChanged, bool bChanged) {
                 ++key->taps;
         }
     }
+
     if (a_.taps > 0 && !a_.down && now - a_.releasedAt >= kDoubleGapMs) {
         push(a_.taps == 1 ? Action::PlayPause : Action::Prev);
         a_.taps = 0;
     }
+
     if (b_.taps > 0 && !b_.down && now - b_.releasedAt >= kDoubleGapMs) {
         push(b_.taps == 1 ? Action::Seek : Action::Next);
         b_.taps = 0;
@@ -102,13 +111,17 @@ void Keypad::updateChord(uint32_t now) {
             firstUpAt_ = now;
         chordBroken_ = true;
     }
+
     if (!chordFired_ && !chordBroken_ && now - chordAt_ >= kChordHoldMs) {
         chordFired_ = true;
         push(Action::OpenMenu);
     }
+
     if (a_.down || b_.down)
         return;
+
     if (!chordFired_ && now - firstUpAt_ <= kChordReleaseMs)
         push(Action::NextPlaylist);
+
     mode_ = Mode::Idle;
 }

@@ -11,22 +11,22 @@
 #include "Settings.h"
 #include "View.h"
 
-// Qual tela esta ativa e o que cada gesto significa nela. Em Home os gestos vao para o Player; nos
-// menus as duas teclas so navegam: A desce, B confirma, A+B volta. Dentro de uma partida os gestos
-// vao para o GameHost e os jogos leem as teclas cruas.
+// Qual tela está ativa e o que cada gesto significa nela. Em Home os gestos vão para o Player. Nos
+// menus as duas teclas só navegam: A desce, B confirma, A+B volta. Dentro de uma partida os gestos
+// vão para o GameHost e os jogos leem as teclas cruas.
 class Navigator {
 public:
-#if MP3_TEST_PORTAL
-    void testOpenWifi() { startWifi(); } // so no env de teste do portal: sobe o Wi-Fi sem botoes
-#endif
-    static constexpr uint32_t kSplashMs = 3800; // ondas nos primeiros 1,8 s, marmota balancando o tempo todo; termina no meio do ciclo de 1 s
+    static constexpr uint32_t kSplashMs = 3800; // ondas nos primeiros 1,8 s. Termina no meio do ciclo de 1 s
     static constexpr uint32_t kConnectTimeoutMs = 15000;
-    static constexpr uint32_t kResumeMs = 60000;    // espera pelo fone depois do Wi-Fi antes de desistir de retomar a musica
-    static constexpr uint32_t kRetryMs = 10000;     // reconexao em segundo plano na Home
-    static constexpr uint32_t kScreenOffMs = 10000; // tela apaga parado, com a funcionalidade extra ligada
-    static constexpr uint32_t kChordGapMs = 700;    // janela para contar os toques de A+B
+    static constexpr uint32_t kResumeMs = 60000;      // espera pelo fone após o Wi-Fi antes de desistir de retomar
+    static constexpr uint32_t kRetryMs = 10000;       // reconexão em segundo plano na Home
+    static constexpr uint32_t kScreenOffMs = 10000;   // tela apaga parado, com a funcionalidade extra ligada
+    static constexpr uint32_t kChordGapMs = 700;      // janela para contar os toques de A+B
+    static constexpr uint8_t kLockTaps = 3;           // toques de A+B que travam ou destravam
+    static constexpr uint32_t kDeliveredWakeMs = 200; // quanto a troca de playlist entregue mantém a tela acesa
 
-    Navigator(Player& player, Settings& settings, Audio& audio, mrm::Locale& locale, mrm::game::GameHost& games, Portal& portal)
+    Navigator(Player& player, Settings& settings, Audio& audio, mrm::Locale& locale,
+              mrm::game::GameHost& games, Portal& portal)
         : player_(player)
         , settings_(settings)
         , audio_(audio)
@@ -42,19 +42,23 @@ public:
         bHeld_ = b;
     } // teclas cruas, para os jogos
 
-    bool menuInput() const { return screen_ == Screen::Home ? player_.seeking() : screen_ != Screen::Splash; } // busca tambem: toque na hora
+    // busca também: toque na hora
+    bool menuInput() const { return screen_ == Screen::Home ? player_.seeking() : screen_ != Screen::Splash; }
     bool wifiRunning() const { return wifiOn_; }
     bool gameRunning() const { return screen_ == Screen::Play && games_.running(); }
     bool idle() const; // display pode apagar
     bool locked() const { return locked_; }
     bool toastActive() const;
     bool wantsDisplay() const;
-    // Com o bloqueio ligado, A+B na Home e contado em vez de agir na hora (nao acorda a tela).
-    bool countsChords() const { return settings_.lockEnabled() && screen_ == Screen::Home && !locked_ && !player_.seeking(); }
+    // Com o bloqueio ligado, A+B na Home e contado em vez de agir na hora (não acorda a tela).
+    bool countsChords() const {
+        return settings_.lockEnabled() && screen_ == Screen::Home && !locked_ && !player_.seeking();
+    }
     void wake(); // uma tecla acordou o display: conta como atividade
     View view() const;
 
 private:
+    friend class PortalSelfTest; // teste do portal embutido, só com -DMP3_TEST_PORTAL=1
     enum class Screen : uint8_t { Splash,
                                   Connecting,
                                   Picker,
@@ -88,6 +92,12 @@ private:
     void setLanguage(mrm::Lang lang);
     void selectExtras();
     void selectPlaylist();
+    void selectGames();
+    void selectWifi();
+    void selectLanguage();
+    void updateSplash();
+    void updateConnecting();
+    void updatePlay();
     void refreshStorage();
     void handleHome(Keypad::Action action);
     void handleLocked(Keypad::Action action);
@@ -95,6 +105,8 @@ private:
     void resolveChord();
     void showToast(View::Toast toast);
     void fillMenus(View& v) const;
+    void fillHome(View& v) const;
+    static View::Mode modeOf(Screen screen, View::Mode homeMode);
 
     Player& player_;
     Settings& settings_;
@@ -104,7 +116,7 @@ private:
     Portal& portal_;
 
     Screen screen_ = Screen::Splash;
-    bool pickedFromList_ = false; // a conexao em curso saiu da lista de dispositivos
+    bool pickedFromList_ = false; // a conexão em curso saiu da lista de dispositivos
     uint32_t screenAt_ = 0;
     uint32_t activityAt_ = 0;
     uint32_t retryAt_ = 0;

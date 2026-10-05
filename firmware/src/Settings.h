@@ -6,10 +6,10 @@
 
 #include <PathRules.h>
 
-// Preferencias que sobrevivem ao reboot. A flash tem vida curta, entao a escrita espera o valor
-// parar de mudar (volume muda a cada passo) em vez de gravar a cada alteracao. Volume, faixa e fone
-// mudam tocando e vao para a NVS: so o que mudou, uma entrada de 32 B (~3,5 ms medidos, sem buraco
-// no audio); a pagina de 4 KB so e apagada a cada ~126 entradas. O resto fica no config.json.
+// Preferências que sobrevivem ao reboot. A flash tem vida curta, então a escrita espera o valor
+// parar de mudar (volume muda a cada passo) em vez de gravar a cada alteração. Volume, faixa e fone
+// mudam tocando e vão para a NVS: só o que mudou, uma entrada de 32 B (~3,5 ms medidos, sem buraco
+// no áudio). A página de 4 KB só é apagada a cada ~126 entradas. O resto fica no config.json.
 class Settings : public mrm::game::GameStore {
 public:
     static constexpr uint8_t kMaxVolume = 100;
@@ -17,43 +17,43 @@ public:
 
     void begin();
     void update();
-    // Segura o config.json com o fone conectado: apagar um setor congela o cache nos dois nucleos por
-    // ~80 ms, e com o A2DP no ar isso deixou a pilha mandando 2/3 do audio por minutos (engasgo).
+    // Segura o config.json com o fone conectado: apagar um setor congela o cache nos dois núcleos por
+    // ~80 ms, e com o A2DP no ar isso deixou a pilha mandando 2/3 do áudio por minutos (engasgo).
     void defer(bool on) { defer_ = on; }
 
     uint8_t volume() const { return volume_; }
     void setVolume(uint8_t volume);
 
-    // Playlist e faixa por nome: o indice muda quando algo entra ou sai, e achar o nome custa uma passada so no cartao.
-    // O indice fica como plano B para quando o arquivo foi renomeado ou apagado.
+    // Playlist e faixa por nome: o índice muda quando algo entra ou sai, e achar o nome custa uma passada só no cartão.
+    // O índice fica como plano B para quando o arquivo foi renomeado ou apagado.
     const char* playlist() const { return playlist_; }
     const char* trackName() const { return trackName_; }
     uint16_t track() const { return track_; }
-    uint32_t positionSec() const { return positionSec_; } // dentro da faixa; so vale para trackName()
-    // Mudar so os segundos grava so a NVS (periodico enquanto toca); trocar de faixa grava tambem o config.json.
+    uint32_t positionSec() const { return positionSec_; } // dentro da faixa, só vale para trackName()
+    // Mudar só os segundos grava só a NVS (periódico enquanto toca). Trocar de faixa grava também o config.json.
     void setPosition(const char* playlist, uint16_t track, const char* trackName, uint32_t seconds = 0);
 
     mrm::Lang lang() const { return lang_; }
     void setLang(mrm::Lang lang);
 
-    // Recorde de cada jogo; setBest so grava (e devolve true) quando a pontuacao e maior.
+    // Recorde de cada jogo. setBest só grava (e devolve true) quando a pontuação é maior.
     uint16_t best(uint8_t game) const override { return game < kGames ? best_[game] : 0; }
     bool setBest(uint8_t game, uint16_t score) override;
-    // O tutorial de cada jogo aparece so na primeira vez; depois fica em Como jogar.
+    // O tutorial de cada jogo aparece só na primeira vez. Depois fica em Como jogar.
     bool tutorialSeen(uint8_t game) const override { return seen_ & (1u << game); }
     void setTutorialSeen(uint8_t game) override;
 
-    // Funcionalidades extras, desligadas por padrao.
-    bool screenOff() const { return screenOff_; } // apaga a tela depois de 10 s parado, ate tocando
+    // Funcionalidades extras, desligadas por padrão.
+    bool screenOff() const { return screenOff_; } // apaga a tela depois de 10 s parado, até tocando
     void setScreenOff(bool on);
-    bool lockEnabled() const { return lockEnabled_; } // A+B 3x trava e destrava os botoes
+    bool lockEnabled() const { return lockEnabled_; } // A+B 3x trava e destrava os botões
     void setLockEnabled(bool on);
 
     bool bluetooth() const { return bluetooth_; }
     void setBluetooth(bool on);
-    // Ultimo fone conectado, para reconectar sozinho no boot.
+    // Último fone conectado, para reconectar sozinho no boot.
     const char* device() const { return device_; }
-    // BDA do ultimo fone (nullptr se nunca gravado): reconecta sem esperar a varredura achar o nome.
+    // BDA do último fone (nullptr se nunca gravado): reconecta sem esperar a varredura achar o nome.
     const uint8_t* deviceBda() const { return hasBda_ ? bda_ : nullptr; }
     void setDevice(const char* name, const uint8_t* bda = nullptr);
 

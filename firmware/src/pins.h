@@ -15,6 +15,6 @@ constexpr uint8_t kKeyA = 33;
 constexpr uint8_t kKeyB = 32;
 
 constexpr uint8_t kLed = 16;
-constexpr uint8_t kBattery = 35;
+constexpr uint8_t kBattery = 35; // reservado para a medição de bateria
 
 } // namespace pins
