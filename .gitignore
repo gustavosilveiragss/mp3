@@ -6,3 +6,10 @@ COMPRAS.md
 # Python cache
 __pycache__/
 *.pyc
+
+# material privado de projeto, nunca commitar
+CONTROLES.md
+CIRCUITO.md
+medidas/
+breadboard/
+case3d/
