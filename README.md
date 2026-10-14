@@ -1,97 +1,113 @@
 # mp3
 
-A small music player you fill from your phone. No store, no streaming, no account.
-You upload your own files, build playlists, and it just plays them, over a cable or
-to Bluetooth headphones.
+Player de MP3 de bolso. Toca os arquivos de um cartão microSD em um fone Bluetooth. Sem loja, sem streaming, sem conta.
 
-Part of [marmota](https://github.com/gustavosilveiragss/marmota).
+Faz parte do projeto [marmota](https://github.com/gustavosilveiragss/marmota).
 
-## The idea
+## Como funciona
 
-The player has almost no interface of its own. When you want to manage it, you raise
-its WiFi on demand, upload tracks and arrange playlists from the phone, then it goes
-back to being a quiet music box. Day to day you drive it with a few buttons and a
-small screen.
+- Os MP3 ficam num cartão microSD em FAT32. Uma pasta por playlist, as faixas tocam em ordem de nome.
+- O som sai só por Bluetooth (A2DP). Não tem DAC, amplificador nem saída de fone.
+- Para enviar músicas, o player abre um Wi-Fi sob demanda. Você conecta o celular, abre a página e envia os arquivos. Wi-Fi e Bluetooth nunca ficam ligados juntos.
+- Dois botões e uma tela OLED. A tela tem português e inglês.
+- Guarda a posição da faixa e mostra o artista da tag ID3.
 
-## Audio out
+## Peças
 
-Bluetooth only. The player streams to wireless headphones over A2DP, so the board is a
-classic dual core ESP32 (the C3 cannot do A2DP audio). No DAC, no amp, no headphone jack:
-fewer parts, smaller board, lower cost.
+| Peça | Observação |
+|---|---|
+| ESP32 devkit clássico | dois núcleos, o C3 e o S3 não fazem A2DP |
+| Módulo microSD | armazena a biblioteca |
+| Cartão microSD | |
+| OLED SSD1306 0,96" I2C | faixa e playlist |
+| MT3608 | 3,7 V para 5 V |
+| Botões 6x6 (2) | |
+| Célula 18650 | |
+| Suporte para 18650 | |
+| TP4056 USB-C | carregador com proteção |
+| Chave SS-12D00 | liga e desliga |
+| Resistores, capacitores, fios | |
+| Placa perfurada | |
+| Barras de pinos fêmea | soquete do ESP |
+| Filamento PLA | case |
 
-Bluetooth breaks the usual marmota rule of radios off, on purpose. Wireless sound is worth
-a radio. The WiFi portal and Bluetooth never run together: opening the portal to upload
-tracks turns Bluetooth off, and the other way around.
+A montagem é em placa perfurada, sem PCB própria.
 
-## Storage
+## Tela
 
-A microSD card holds the library. Music is big, so you upload files onto the card
-from the phone over WiFi. Easy to grow, easy to swap.
+![Telas do player](img/tela.png)
 
-## Control
+Abertura, tocando (sem e com artista), biblioteca, configurações e envio de músicas.
 
-* Buttons: play and pause, next, previous, volume up and down.
-* A small 0.96 inch OLED shows the track and playlist. Simplest display that does the
-  job, same SSD1306 driver as the rest of the family.
-* One LED for status.
+## Controles
 
-## Manage (WiFi on demand)
+| Gesto | Ação |
+|---|---|
+| A toque | play e pausa |
+| A toque duplo | faixa anterior |
+| A segurar | volume menos |
+| B toque | modo busca na faixa |
+| B toque duplo | próxima faixa |
+| B segurar | volume mais |
+| A+B toque | próxima playlist |
+| A+B segurar 1,5 s | abre a Config (Wi-Fi, Bluetooth, idioma) |
 
-Press the config button, the player raises an access point, you open the page on your
-phone, upload tracks and edit playlists, then the radio sleeps. Same pattern as the pin.
+## Enviar músicas
 
-## Power
+1. Segure A+B por 1,5 s para abrir a Config.
+2. Ligue o Wi-Fi.
+3. Conecte o celular na rede `marmota mp3` seguida de 4 caracteres, que aparecem na tela. A página abre sozinha, ou entre em `http://192.168.4.1`.
+4. Envie os MP3 e organize as playlists.
 
-* Single 18650 with a holder, recycled where possible.
-* TP4056 USB-C charger with protection.
-* Wired playback sips current. Bluetooth costs more, as expected.
+Wi-Fi e Bluetooth são exclusivos: abrir o portal desliga o Bluetooth.
 
-## BOM and cost
+## Metadados
 
-Rough per unit, in BRL, retail Brazilian prices. Modules on perfboard, hand assembled, no custom PCB.
-Ordering the cheap parts from AliExpress in bulk cuts about 20-30% off.
+O player não busca nada na internet. O que aparece na tela vem do próprio arquivo:
 
-| Part | Note | Price |
-|---|---|---|
-| ESP32 classic devkit | dual core, needs A2DP | 35 |
-| microSD module | library storage | 6 |
-| microSD 8 GB card | reuse an old card if possible | 8 |
-| OLED SSD1306 0.96 I2C | track and playlist | 20 |
-| MT3608 boost | 3.7 V to 5 V for the ESP | 10 |
-| Buttons | play, next, prev, volume x2, 6x6 tact as in the pin | 2 |
-| 18650 cell | | 15 |
-| 18650 holder | | 4 |
-| TP4056 USB-C | charger | 5 |
-| Power switch | SS-12D00 slide, as in the pin | 2 |
-| LED | status | 1 |
-| Passives, diode, wires | | 8 |
-| Perfboard | | 6 |
-| Female headers | ESP socket | 5 |
-| Case | own printer, PETG filament | 4 |
+- **Título:** o nome do arquivo, sem a extensão.
+- **Artista:** a tag ID3 do MP3 (`TPE1`, ID3v2.3 ou 2.4, com ID3v1 como reserva). Sem tag, o campo fica vazio.
+- Só aparecem corretamente os caracteres Latin-1. O resto vira `?`.
 
-Component cost is about **R$130** per unit (range R$105-160).
+Então a tag tem que estar gravada no arquivo antes de ele ir para o cartão. Se o MP3 veio sem tag, grave com o [Mp3tag](https://www.mp3tag.de/), o [Kid3](https://kid3.kde.org/) ou o [MusicBrainz Picard](https://picard.musicbrainz.org/). Alguns sites de download já entregam o arquivo com as tags, então vale conferir antes de copiar.
 
-Price is cost plus assembly time plus a light 25% markup to cover fees, failures and
-the odd warranty. About R$130 in parts, 3 hours at R$25 an hour, then +25%:
-**around R$255**.
+## Firmware
 
-## Principles
+Precisa de PlatformIO 6.2. O ambiente é `mp3` (Arduino 3.x pelo pioarduino).
 
-Battery first and friction on purpose: your files, your playlists, no feed. Radios
-only when you ask, with Bluetooth as the one deliberate exception for wireless sound.
+```
+cd firmware
+pio run -e mp3
+pio run -e mp3 -t upload
+```
 
-## Build
+O `firmware.bin` tem que caber na partição `app0` (2.359.296 bytes). Se passar disso, o aparelho não inicia.
 
-Prototype first: wire everything on a breadboard with jumpers (almost no soldering) and iterate
-on pins, firmware, power and heat. Then measure every part (`medidas/`). Perfboard and case come
-last, once the prototype is validated. The battery runs warm, so the case is vented.
+Bibliotecas, com versão fixa no `platformio.ini`: [marmota-fmk](https://github.com/gustavosilveiragss/marmota-fmk), [ESP32-A2DP](https://github.com/pschatzmann/ESP32-A2DP) e [arduino-libhelix](https://github.com/pschatzmann/arduino-libhelix).
 
-Then hand solder on perfboard. Follow the marmota
-[build standard](https://github.com/gustavosilveiragss/marmota#build-standard):
-minimal solder, strain relief. The board is never screwed and never held by foam: it slides into
-printed rails in the case and is locked with hot glue. Strain relief the battery and the display
-wiring.
+## Case
 
-## Status
+Os arquivos ficam em `cad/`:
 
-Idea stage, decisions locked. Firmware scaffold compiles. Next step: breadboard prototype. Board is a classic ESP32 for A2DP.
+- `marmota.FCStd`: FreeCAD 1.1. Base, tampa, letras e ponte, mais as réplicas dos componentes. As cotas ficam todas na planilha.
+- `marmota-assembly.FCStd`: montagem completa, sem cabos. Abre o `marmota.FCStd` junto, então deixe os dois na mesma pasta com esses nomes.
+- `marmota-case.3mf`: pronto para o Bambu Studio.
+
+![Tampa por fora](img/tampa-fora.png)
+
+![Tampa por dentro](img/tampa-por-dentro.png)
+
+![Montagem aberta, sem a tampa](img/montagem-aberta.png)
+
+![Base por dentro](img/base-por-dentro.png)
+
+A case tem 83 × 64 × 31 mm, mais a orelha para o mosquetão. Fecha com 4 parafusos M2 × 12 autoatarraxantes, cabeça panela, por baixo.
+
+O 3MF foi feito para a Bambu Lab A1 com bico de 0,4 mm, PLA genérico e duas cores. Filamento 1 no corpo, filamento 2 nas letras e nos anéis do rasgo da orelha. As peças já estão na mesa, a base com o fundo para baixo e a tampa de cabeça para baixo, com suporte só a partir da mesa. A estimativa é de 2h16 e 50 g.
+
+## Pastas
+
+- `firmware/`: código do player, em PlatformIO.
+- `cad/`: case em FreeCAD e o 3MF.
+- `img/`: imagens da case e da tela do player.
+- `perfboard/`: layout da placa perfurada, em `index.html`.
