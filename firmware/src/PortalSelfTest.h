@@ -2,7 +2,7 @@
 
 // Teste real do portal Wi-Fi embutido no firmware. Só existe com -DMP3_TEST_PORTAL=1 (nenhum env o define).
 //
-// Como ligar: PLATFORMIO_BUILD_FLAGS='-DMP3_TEST_PORTAL=1' ./scripts/pio.sh run -d firmware -t upload
+// Como ligar: PLATFORMIO_BUILD_FLAGS='-DMP3_TEST_PORTAL=1' pio run -d firmware -t upload
 // O que cobre: sobe o Wi-Fi e o portal sozinho no boot, sem botões, para o computador enviar e gerenciar
 // arquivos pela rede. Junte -DMP3_PORTAL_DEBUG=1 para ver tempos de SD, rede e heap no serial.
 // Quem usa: firmware/web/test/portal_test.py (via run_portal_test.sh) e run_bench.sh.

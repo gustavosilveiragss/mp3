@@ -1,4 +1,4 @@
-// Gerado por scripts/page.py a partir de firmware/web/portal.html. Não editar.
+// Gerado a partir de firmware/web/portal.html. Não editar.
 // clang-format off
 #pragma once
 

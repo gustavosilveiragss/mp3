@@ -1,2 +1,0 @@
-ram_bytes=87028
-flash_bytes=1629360
