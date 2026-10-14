@@ -44,7 +44,7 @@ function seed(n) {
   }
 }
 if (arg.seed) seed(+arg.seed);
-const PAGE = arg.page ? path.resolve(arg.page) : path.join(__dirname, '..', 'portal.html');
+const PAGE = arg.page ? path.resolve(arg.page) : path.join(__dirname, '..', 'portal.min.html');
 let last = 'ok', lu = 0;
 
 // Mesmas regras do PathRules.h, contando bytes como o strlen do aparelho.

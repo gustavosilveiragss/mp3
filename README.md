@@ -110,4 +110,4 @@ O 3MF foi feito para a Bambu Lab A1 com bico de 0,4 mm, PLA genérico e duas cor
 - `firmware/`: código do player, em PlatformIO.
 - `cad/`: case em FreeCAD e o 3MF.
 - `img/`: imagens da case e da tela do player.
-- `perfboard/`: layout da placa perfurada, em `index.html`.
+- `perfboard/`: layout da placa perfurada, em `index.min.html`.
